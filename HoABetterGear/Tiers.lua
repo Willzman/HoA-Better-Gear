@@ -114,6 +114,45 @@ end
 -- Character frame
 -------------------------------------------------------------------------------
 
+-- Empty slots glow red, except slots that don't matter or can't be used.
+local NEVER_RED = { ShirtSlot = true, TabardSlot = true, AmmoSlot = true }
+
+-- Slots HoA locks per class (copied from its VanillaBonkSlots.lua, which keeps
+-- the list private). HoA also puts a red X (button.bonkCross) on locked
+-- slots, which is checked too in case the list changes.
+local LOCKED_SLOTS = {
+    WARRIOR = { RangedSlot = true }, PALADIN = { RangedSlot = true },
+    ROGUE   = { RangedSlot = true }, PRIEST  = { RangedSlot = true },
+    SHAMAN  = { RangedSlot = true }, MAGE    = { RangedSlot = true },
+    WARLOCK = { RangedSlot = true },
+    DRUID   = { SecondaryHandSlot = true, RangedSlot = true },
+    HUNTER  = { MainHandSlot = true, SecondaryHandSlot = true },
+}
+
+local ONE_HANDED = { INVTYPE_WEAPON = true, INVTYPE_WEAPONMAINHAND = true }
+
+local function SlotLocked(s)
+    if type(s.button.bonkCross) == "table" then return true end
+    local _, class = UnitClass("player")
+    local locked = class and LOCKED_SLOTS[class]
+    return locked and locked[s.name] or false
+end
+
+local function MainHandOneHanded()
+    local id = ns.ItemIdFromLink(GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot")))
+    if not id then return false end
+    local _, _, _, _, _, _, _, equipLoc = GetItemInfo(id)
+    return ONE_HANDED[equipLoc or ""] or false
+end
+
+-- Should this (empty) slot glow red?
+local function EmptySlotNeedsGear(s)
+    if NEVER_RED[s.name] or SlotLocked(s) then return false end
+    -- The off hand only matters next to a one-handed main-hand weapon.
+    if s.name == "SecondaryHandSlot" then return MainHandOneHanded() end
+    return true
+end
+
 local function SetupSlot(slotName)
     local button = getglobal("Character" .. slotName)
     if not button then return end
@@ -132,7 +171,7 @@ local function SetupSlot(slotName)
     glow:SetPoint("CENTER", button, "CENTER", 0, 0)
     glow:Hide()
 
-    local s = { id = slotId, button = button, glow = glow, text = CreateTierText(button) }
+    local s = { id = slotId, name = slotName, button = button, glow = glow, text = CreateTierText(button) }
     ApplyTextStyle(s)
     table.insert(slots, s)
 end
@@ -141,7 +180,13 @@ local function UpdateSlot(s)
     local db = ns.db
     local link = GetInventoryItemLink("player", s.id)
     if not link then
-        s.glow:Hide()
+        if db.emptyGlow and EmptySlotNeedsGear(s) then
+            s.glow:SetVertexColor(1, 0.1, 0.1)
+            s.glow:SetAlpha(db.glowAlpha)
+            s.glow:Show()
+        else
+            s.glow:Hide()
+        end
         s.text:Hide()
         return
     end
@@ -248,6 +293,7 @@ ns.OnRefresh(function()
 end)
 
 ns.Toggle("glow", "glow", "quality glow")
+ns.Toggle("emptyGlow", "empty", "red glow on empty slots")
 ns.Toggle("tier", "tier", "tier numbers")
 ns.Toggle("bags", "bags", "tier numbers on bag items")
 ns.Toggle("colorTier", "color", "quality-colored tier text")
