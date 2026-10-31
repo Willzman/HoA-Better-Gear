@@ -31,7 +31,8 @@ Better Gear: +64.4% upgrade        vs Deadwalker Mantle
 ```
 
 - The section sits under a gold line. The % is colored like item rarity by how big the upgrade is: white under 5%, green 5–15%, blue 15–30%, purple 30–60%, orange 60%+ (or an empty slot). Downgrades are red.
-- Rings, trinkets and one-handed weapons are compared with the **weaker** of your two equipped items, since that's the one you'd replace. In the loot window, where you choose which slot to replace, the New card shows a comparison for **each** slot instead. An empty slot always counts as an upgrade.
+- Rings and trinkets are compared with the **weaker** of your two equipped items, since that's the one you'd replace.
+- Weapons follow the hands: a two-hander is compared with your main hand and off hand **together**; a one-hander or off-hand item is compared with your two-hander if you're holding one; otherwise a one-hander is compared with your main hand (either hand for Warriors and Rogues, who can dual wield). In the loot window, where you choose which slot to replace, the New card shows a comparison for **each** slot instead. An empty slot always counts as an upgrade.
 - Items your class can't use get no comparison and no arrow. Cards on the Quartermaster's Upgrade tab (your own pieces, which HoA already marks with its own arrow) are skipped.
 - Stats are read exactly as HoA shows them, including the bonus lines on rolled items. Set bonuses aren't counted.
 

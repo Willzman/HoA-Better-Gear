@@ -178,33 +178,98 @@ function ns.Score(stats)
     return score
 end
 
-local function SlotsFor(link)
+local function EquipLoc(link)
     local id = ns.ItemIdFromLink(link)
     if not id then return nil end
     local _, _, _, _, _, _, _, equipLoc = GetItemInfo(id)
+    return equipLoc
+end
+
+local function SlotsFor(link)
+    local equipLoc = EquipLoc(link)
     return equipLoc and SLOTS_BY_EQUIP_LOC[equipLoc]
 end
 
--- Compares candidate stats with what's equipped in the item's slot(s).
+local MAIN_HAND, OFF_HAND = 16, 17
+local ONE_HAND = { INVTYPE_WEAPON = true }
+local OFF_HAND_ONLY = { INVTYPE_SHIELD = true, INVTYPE_WEAPONOFFHAND = true, INVTYPE_HOLDABLE = true }
+local DUAL_WIELD = { WARRIOR = true, ROGUE = true } -- 1.12 classes that can (hunters are locked out of melee in HoA)
+
+local function HoldingTwoHander()
+    return EquipLoc(GetInventoryItemLink("player", MAIN_HAND)) == "INVTYPE_2HWEAPON"
+end
+
+-- Two items' stats added together (for a two-hander vs main hand + off hand).
+local function CombineStats(a, b)
+    local sum = { values = {}, order = {}, names = {}, pct = {}, count = a.count + b.count,
+        itemName = (a.itemName or "?") .. " + " .. (b.itemName or "?") }
+    for _, s in ipairs({ a, b }) do
+        for _, key in ipairs(s.order) do
+            if not sum.values[key] then
+                table.insert(sum.order, key)
+                sum.names[key] = s.names[key]
+                sum.pct[key] = s.pct[key]
+                sum.values[key] = 0
+            end
+            sum.values[key] = sum.values[key] + s.values[key]
+        end
+    end
+    return sum
+end
+
+-- What an item would replace: a list of equipped stats (false = an empty
+-- slot) to compare it with. Weapons follow the hands rules:
+--   two-hander        -> main hand + off hand together (it replaces both)
+--   one-hander        -> the two-hander if you hold one; else the main hand
+--                        (or either hand for classes that can dual wield)
+--   off-hand item     -> the two-hander if you hold one (it gets unequipped);
+--                        else the off hand
+--   anything else     -> its slot(s)
+-- 'cache' (optional) memoizes equipped stats within one pass.
+local function CompareTargets(link, cache)
+    local equipLoc = EquipLoc(link)
+    local slots = equipLoc and SLOTS_BY_EQUIP_LOC[equipLoc]
+    if not slots then return nil end
+
+    local function Equipped(slot)
+        if not cache then return EquippedStats(slot) or false end
+        local eq = cache[slot]
+        if eq == nil then
+            eq = EquippedStats(slot) or false
+            cache[slot] = eq
+        end
+        return eq
+    end
+
+    if equipLoc == "INVTYPE_2HWEAPON" then
+        local main, off = Equipped(MAIN_HAND), Equipped(OFF_HAND)
+        if main and off then return { CombineStats(main, off) } end
+        return { main or off or false }
+    end
+    if (ONE_HAND[equipLoc] or OFF_HAND_ONLY[equipLoc]) and HoldingTwoHander() then
+        return { Equipped(MAIN_HAND) }
+    end
+    if ONE_HAND[equipLoc] then
+        local _, class = UnitClass("player")
+        if not DUAL_WIELD[class or ""] then return { Equipped(MAIN_HAND) } end
+    end
+    local targets = {}
+    for _, slot in ipairs(slots) do
+        table.insert(targets, Equipped(slot))
+    end
+    return targets
+end
+
+-- Compares candidate stats with what the item would replace.
 -- Returns nil if the item isn't gear we can compare, else a table:
 --   { score, empty = bool, other = equipped stats, otherScore }
--- 'equippedCache' (optional) memoizes equipped stats within one pass.
+-- With two choices (rings, trinkets) it's the weaker one, or an empty slot.
 local function Compare(stats, link, equippedCache)
     if not stats or stats.count == 0 then return nil end
-    local slots = SlotsFor(link)
-    if not slots then return nil end
+    local targets = CompareTargets(link, equippedCache)
+    if not targets then return nil end
     local result = { score = ns.Score(stats) }
-    for _, slot in ipairs(slots) do
-        local eq
-        if equippedCache then
-            eq = equippedCache[slot]
-            if eq == nil then
-                eq = EquippedStats(slot) or false
-                equippedCache[slot] = eq
-            end
-        else
-            eq = EquippedStats(slot) or false
-        end
+    for _, eq in ipairs(targets) do
         if not eq then
             -- an empty slot: anything is an upgrade
             result.empty = true
@@ -355,15 +420,12 @@ local function AddComparison(tip, link, eachSlot)
     if not ns.db or not link then return end
     local stats = ParseTooltip(tip)
     if stats.count == 0 or TooltipUnusable(tip) then return end
-    local slots = SlotsFor(link)
-    if not slots then return end
+    if not SlotsFor(link) then return end
     local score = ns.Score(stats)
 
     local targets = {} -- equipped stats per compared slot (false = empty)
     if eachSlot then
-        for _, slot in ipairs(slots) do
-            table.insert(targets, EquippedStats(slot) or false)
-        end
+        targets = CompareTargets(link) or {}
     else
         local cmp = Compare(stats, link)
         if not cmp then return end
