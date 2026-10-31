@@ -5,8 +5,8 @@
 -- gear you're missing in red, using the same rules as the red empty-slot
 -- glow (no shirt/tabard, no slots your class can't use, off hand only next
 -- to a one-handed weapon). The figure has no parts for neck, back, rings or
--- trinkets; this adds a necklace and two rings in the same style (back and
--- trinkets still can't show here).
+-- trinkets; this adds a necklace, two rings and two trinkets in the same
+-- style (the back still can't show here).
 --
 -- Based on the 1.12 FrameXML: DurabilityFrame_SetAlerts() colors the parts
 -- named "Durability" .. INVENTORY_ALERT_STATUS_SLOTS[i].slot; body parts
@@ -46,7 +46,7 @@ end
 
 -- Runs right after the game's DurabilityFrame_SetAlerts.
 -- Extra parts for gear the game's figure has no picture for, drawn by this
--- addon in the same style (DurabilityNeck.tga / DurabilityRing.tga). They
+-- addon in the same style (DurabilityNeck / Ring / Trinket .tga). They
 -- have no durability, so they only ever show "missing" (red) or worn (dim).
 local JEWELRY = {
     { name = "Neck",  slot = "NeckSlot",    file = "DurabilityNeck", size = 14,
@@ -55,6 +55,10 @@ local JEWELRY = {
       anchor = { "CENTER", "DurabilityHands", "BOTTOMLEFT", 4, 3 } },
     { name = "Ring2", slot = "Finger1Slot", file = "DurabilityRing", size = 10,
       anchor = { "CENTER", "DurabilityHands", "BOTTOMRIGHT", -4, 3 } },
+    { name = "Trinket1", slot = "Trinket0Slot", file = "DurabilityTrinket", size = 10,
+      anchor = { "CENTER", "DurabilityWaist", "LEFT", -6, -4 } },
+    { name = "Trinket2", slot = "Trinket1Slot", file = "DurabilityTrinket", size = 10,
+      anchor = { "CENTER", "DurabilityWaist", "RIGHT", 6, -4 } },
 }
 local jewelry = {} -- [name] = texture
 
