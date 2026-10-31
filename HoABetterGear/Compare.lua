@@ -296,10 +296,10 @@ local NO_STATS = { values = {}, order = {}, names = {}, pct = {} }
 
 -- One "Better Gear: ..." headline, plus per-stat differences and scores.
 -- 'other' is the equipped item's stats, or nil for an empty slot.
-local function AddComparisonBlock(tip, stats, score, other)
+local function AddComparisonBlock(tip, stats, score, other, emptyLabel)
     if not other then
         tip:AddDoubleLine(GOLD .. "Better Gear:|r " .. UPGRADE_COLORS[5].hex
-            .. "upgrade|r", "empty slot", 1, 1, 1, 0.6, 0.6, 0.6)
+            .. "upgrade|r", emptyLabel or "empty slot", 1, 1, 1, 0.6, 0.6, 0.6)
     else
         local otherScore = ns.Score(other)
         local diff = score - otherScore
@@ -349,9 +349,12 @@ end
 -- Adds the Better Gear section to a tooltip that HoA has already filled in.
 -- Normally compares with the item you'd replace (the weaker ring/trinket);
 -- with 'eachSlot' it adds one comparison per equipped slot instead.
+-- 'against' optionally replaces the equipped items with a given list:
+-- { targets = { stats... }, emptyLabel = "..." } (an empty list counts as
+-- an empty slot).
 -- Returns the item's stats, its score and whether it is an upgrade over at
 -- least one compared slot (nil if nothing was compared).
-local function AddComparison(tip, link, eachSlot)
+local function AddComparison(tip, link, against, eachSlot)
     if not ns.db or not link then return end
     local stats = ParseTooltip(tip)
     if stats.count == 0 or TooltipUnusable(tip) then return end
@@ -360,7 +363,12 @@ local function AddComparison(tip, link, eachSlot)
     local score = ns.Score(stats)
 
     local targets = {} -- equipped stats per compared slot (false = empty)
-    if eachSlot then
+    local emptyLabel
+    if against then
+        for _, other in ipairs(against.targets) do table.insert(targets, other) end
+        if not targets[1] then targets[1] = false end
+        emptyLabel = against.emptyLabel
+    elseif eachSlot then
         for _, slot in ipairs(slots) do
             table.insert(targets, EquippedStats(slot) or false)
         end
@@ -383,7 +391,7 @@ local function AddComparison(tip, link, eachSlot)
         AddSeparator(tip)
         for i, other in ipairs(targets) do
             if i > 1 and ns.db.diffs then tip:AddLine(" ") end
-            AddComparisonBlock(tip, stats, score, other or nil)
+            AddComparisonBlock(tip, stats, score, other or nil, emptyLabel)
         end
         tip:Show()
     end
@@ -417,7 +425,28 @@ end
 HookTooltip("SetBagItem", function(bag, slot) return GetContainerItemLink(bag, slot) end)
 HookTooltip("SetMerchantItem", function(index) return GetMerchantItemLink(index) end)
 HookTooltip("SetLootItem", function(slot) return GetLootSlotLink(slot) end)
-HookTooltip("SetHyperlink", function(link) return link end)
+-- In HoA's Extraction Vault the question is which pieces to bring home, so
+-- items there (the cards and the "Mailed to you" slots, which carry a .find
+-- with the entries you already have saved) are compared with your saved
+-- pieces - the "Yours:" items HoA shows beside them - not your worn gear.
+local function VaultSavedTargets()
+    local vault = VanillaBonkVault
+    if not (vault and vault:IsShown() and GetMouseFocus) then return nil end
+    local focus = GetMouseFocus()
+    local find = focus and focus.find
+    if type(find) ~= "table" or type(find.saved) ~= "table" then return nil end
+    local against = { targets = {}, emptyLabel = "nothing saved" }
+    for _, entry in ipairs(find.saved) do
+        local stats = ScanStats("item:" .. entry .. ":0:0:0")
+        if stats and stats.count > 0 then
+            stats.itemName = GetItemInfo(entry)
+            table.insert(against.targets, stats)
+        end
+    end
+    return against
+end
+
+HookTooltip("SetHyperlink", function(link) return link, VaultSavedTargets() end)
 if GetBuybackItemLink then
     HookTooltip("SetBuybackItem", function(index) return GetBuybackItemLink(index) end)
 end
@@ -471,7 +500,7 @@ local function WrapSetHyperlink(tip, after)
 end
 
 WrapSetHyperlink(VanillaBonkGearNewTip, function(tip, link)
-    local _, score, upgrade = AddComparison(tip, link, true)
+    local _, score, upgrade = AddComparison(tip, link, nil, true)
     lootNewScore = score
     local slot = CardSlot(tip)
     if slot then SetArrow(slot, ns.db and ns.db.arrows and upgrade, "up") end
