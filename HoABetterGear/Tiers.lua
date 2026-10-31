@@ -179,6 +179,55 @@ local function UpdateBagButton(button, bag, slot)
 end
 
 -------------------------------------------------------------------------------
+-- Extraction Vault: the "Mailed to you when you leave" box
+-------------------------------------------------------------------------------
+-- HoA's vault window keeps those slots in VanillaBonkVault.box.slots, each
+-- with a .find { entry, tier, quality } it refills as items move in and out.
+-- (The cards below the box already show their tier.) While the window is
+-- open, keep a tier number on each filled slot.
+
+local vaultElapsed = 0
+
+local function UpdateVaultSlot(slot)
+    local b = bagSlots[slot]
+    if not b then
+        b = { button = slot, text = CreateTierText(slot) }
+        ApplyTextStyle(b)
+        bagSlots[slot] = b
+    end
+    local find = slot.find
+    if not (ns.db.tier and type(find) == "table" and slot:IsShown()) then
+        b.text:Hide()
+        return
+    end
+    local tier = tonumber(find.tier)
+    if not tier or tier <= 0 then
+        local ui = VanillaBonkUI
+        tier = ui and ui.GearTier and find.entry and ui.GearTier(find.entry)
+    end
+    local r, g, bl
+    if find.quality then r, g, bl = ns.GetQualityColor(find.quality) end
+    ShowTier(b.text, tier, r, g, bl)
+end
+
+local function UpdateVault()
+    local vault = VanillaBonkVault
+    local box = vault and vault:IsShown() and vault.box
+    if not (box and type(box.slots) == "table") then return end
+    for _, slot in pairs(box.slots) do
+        if type(slot) == "table" then UpdateVaultSlot(slot) end
+    end
+end
+
+local vaultWatcher = CreateFrame("Frame")
+vaultWatcher:SetScript("OnUpdate", function(self, elapsed)
+    vaultElapsed = vaultElapsed + (elapsed or arg1 or 0)
+    if vaultElapsed < 0.2 then return end
+    vaultElapsed = 0
+    if ns.db then UpdateVault() end
+end)
+
+-------------------------------------------------------------------------------
 -- Wiring
 -------------------------------------------------------------------------------
 
@@ -189,6 +238,7 @@ ns.OnLoad(function()
 end)
 
 ns.OnRefresh(function()
+    UpdateVault()
     for _, s in ipairs(slots) do
         UpdateSlot(s)
     end
