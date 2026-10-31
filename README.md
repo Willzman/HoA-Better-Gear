@@ -4,6 +4,7 @@ An addon for **Hordes of Azeroth** that helps you pick better gear:
 
 - **Tier numbers**: each item's tier (the `Tier 10` in the top-right of its tooltip) is printed on its icon, on the character frame, in your bags and bank, and in the Extraction Vault's "Mailed to you when you leave" box, like retail item-level addons.
 - **Quality glow**: an oGlow-style colored border around equipped items on the character frame. HoA's bag window already has its own.
+- **Missing gear on the durability figure**: the little armored figure under the minimap (which shows damaged gear yellow and broken gear red) also shows missing gear in red, using the same rules as the empty-slot glow. It can be moved anywhere with `/hbg move`. The figure has no parts for neck, back, rings or trinkets.
 - **Empty slot warning**: empty character slots glow red, so you can see what's missing. Shirt, tabard and ammo are left out, as are slots your class can't use in HoA (the ones it crosses out, e.g. ranged for most classes). The off hand only glows red when you're holding a one-handed weapon.
 - **Gear comparison** (Pawn-style): every gear tooltip, and the **New** card in the loot window ("Wear it, carry it, or salvage it for Valor"), says how the item compares with what you have equipped, as a % upgrade or downgrade plus the difference in each stat.
 - **Upgrade arrows**: items in your bags, your bank and at the Mythic Quartermaster that would be an upgrade get a green arrow. In the loot window, the New item gets a green arrow and each equipped piece it beats gets a red one.
@@ -55,6 +56,8 @@ The default weights favor damage (Power, Haste and Crit chance at 1.0, most defe
 | `/hbg bags` | Toggle tier numbers on bag and bank items |
 | `/hbg glow` | Toggle the quality glow on the character frame |
 | `/hbg empty` | Toggle the red glow on empty character slots |
+| `/hbg figure` | Toggle missing gear on the durability figure |
+| `/hbg move` | Unlock the durability figure to drag it; type it again to lock (`/hbg move reset` puts it back under the minimap) |
 | `/hbg prefix` | Switch between `10` and `T10` |
 | `/hbg color` | Toggle quality-colored tier text (default off = the same gold as the tooltip's `Tier N`) |
 | `/hbg quality <0-5>` | Minimum quality that gets a glow (default `2` = uncommon) |
@@ -74,5 +77,6 @@ Settings are saved per account in `HoABetterGearDB`.
 - The Extraction Vault's "Mailed to you" slots live in `VanillaBonkVault.box.slots`; while the vault is open the addon reads each slot's tier and draws it.
 - The loot window's New card is HoA's own tooltip (`VanillaBonkGearNewTip`); the comparison is added right after HoA fills it in, so the card grows to fit.
 - Quartermaster cards aren't named frames, so while that window is open the addon finds them inside `VanillaBonkQuartermasterFrame` and updates a card's arrow when its item changes.
-- Files: `Core.lua` (settings, events, commands), `Tiers.lua` (tier numbers and glow), `Compare.lua` (comparison and arrows), `UpgradeArrow.tga` / `DowngradeArrow.tga`.
+- The durability figure is the game's `DurabilityFrame`: its `DurabilityFrame_SetAlerts` is wrapped to add missing pieces after the game's own coloring, and once moved, its position is kept even when the game re-anchors it under the minimap.
+- Files: `Core.lua` (settings, events, commands), `Tiers.lua` (tier numbers and glow), `Compare.lua` (comparison and arrows), `Figure.lua` (durability figure), `UpgradeArrow.tga` / `DowngradeArrow.tga`.
 - Written for the 1.12.1 client (Lua 5.0).

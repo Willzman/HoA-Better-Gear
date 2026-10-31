@@ -14,6 +14,7 @@ ns.DEFAULTS = {
     -- tiers / glow
     glow       = true,          -- quality glow on the character frame
     emptyGlow  = true,          -- red glow on empty character slots that need gear
+    figure     = true,          -- show missing gear on the durability figure
     tier       = true,          -- tier numbers
     bags       = true,          -- tier numbers on bag items
     minQuality = 2,             -- 0 poor, 1 common, 2 uncommon, 3 rare, 4 epic, 5 legendary

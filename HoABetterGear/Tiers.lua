@@ -203,6 +203,15 @@ local function UpdateSlot(s)
     ShowTier(s.text, db.tier and ns.GetItemTier("inv", s.id, link), r, g, b)
 end
 
+-- For other modules: should this character slot (by name, e.g. "HeadSlot")
+-- have gear in it? Same rules as the red empty-slot glow.
+function ns.SlotNeedsGear(slotName)
+    for _, s in ipairs(slots) do
+        if s.name == slotName then return EmptySlotNeedsGear(s) end
+    end
+    return false
+end
+
 -------------------------------------------------------------------------------
 -- Bags
 -------------------------------------------------------------------------------
