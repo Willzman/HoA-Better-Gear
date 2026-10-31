@@ -5,7 +5,8 @@
 -- gear you're missing in red, using the same rules as the red empty-slot
 -- glow (no shirt/tabard, no slots your class can't use, off hand only next
 -- to a one-handed weapon). The figure has no parts for neck, back, rings or
--- trinkets, so those can't show here.
+-- trinkets; this adds a necklace and two rings in the same style (back and
+-- trinkets still can't show here).
 --
 -- Based on the 1.12 FrameXML: DurabilityFrame_SetAlerts() colors the parts
 -- named "Durability" .. INVENTORY_ALERT_STATUS_SLOTS[i].slot; body parts
@@ -44,6 +45,54 @@ local function MissingGear(part)
 end
 
 -- Runs right after the game's DurabilityFrame_SetAlerts.
+-- Extra parts for gear the game's figure has no picture for, drawn by this
+-- addon in the same style (DurabilityNeck.tga / DurabilityRing.tga). They
+-- have no durability, so they only ever show "missing" (red) or worn (dim).
+local JEWELRY = {
+    { name = "Neck",  slot = "NeckSlot",    file = "DurabilityNeck", size = 14,
+      anchor = { "CENTER", "DurabilityHead", "BOTTOM", 0, -1 } },
+    { name = "Ring1", slot = "Finger0Slot", file = "DurabilityRing", size = 10,
+      anchor = { "CENTER", "DurabilityHands", "BOTTOMLEFT", 4, 3 } },
+    { name = "Ring2", slot = "Finger1Slot", file = "DurabilityRing", size = 10,
+      anchor = { "CENTER", "DurabilityHands", "BOTTOMRIGHT", -4, 3 } },
+}
+local jewelry = {} -- [name] = texture
+
+local function CreateJewelry()
+    for _, j in ipairs(JEWELRY) do
+        local relative = getglobal(j.anchor[2])
+        if relative then
+            local t = DurabilityFrame:CreateTexture(nil, "ARTWORK") -- over the body
+            t:SetTexture("Interface\\AddOns\\HoABetterGear\\" .. j.file)
+            t:SetWidth(j.size)
+            t:SetHeight(j.size)
+            t:SetPoint(j.anchor[1], relative, j.anchor[3], j.anchor[4], j.anchor[5])
+            t:Hide()
+            jewelry[j.name] = t
+        end
+    end
+end
+
+local function SetJewelry(bodyShown, colorMissing)
+    for _, j in ipairs(JEWELRY) do
+        local t = jewelry[j.name]
+        if t then
+            if not bodyShown then
+                t:Hide()
+            else
+                local slotEmpty = SlotEmpty(j.slot)
+                if colorMissing and slotEmpty and ns.SlotNeedsGear(j.slot) then
+                    t:SetVertexColor(BROKEN.r, BROKEN.g, BROKEN.b, 1)
+                else
+                    t:SetVertexColor(1, 1, 1, 0.5) -- like the game's fine parts
+                end
+                t:Show()
+            end
+        end
+    end
+end
+
+-- Runs right after the game's DurabilityFrame_SetAlerts.
 local function ShowMissing()
     if not (ns.db and DurabilityFrame) then return end
 
@@ -53,10 +102,14 @@ local function ShowMissing()
             local t = Part(part)
             if t then t:Show() end
         end
+        SetJewelry(true, false)
         DurabilityFrame:Show()
         return
     end
-    if not ns.db.figure then return end
+    if not ns.db.figure then
+        SetJewelry(false)
+        return
+    end
 
     local anyBody, any = false, false
     for _, part in ipairs(BODY_PARTS) do
@@ -68,13 +121,22 @@ local function ShowMissing()
             end
         end
     end
-    -- Body parts show all together (the rest dimmed white), like the game does.
+    for _, j in ipairs(JEWELRY) do
+        if jewelry[j.name] and SlotEmpty(j.slot) and ns.SlotNeedsGear(j.slot) then
+            anyBody, any = true, true
+        end
+    end
+    -- Body parts show all together (the rest dimmed white), like the game
+    -- does; the game may already be showing them for damaged gear.
+    local head = Part("Head")
+    local bodyShown = anyBody or (head and head:IsShown()) or false
     if anyBody then
         for _, part in ipairs(BODY_PARTS) do
             local t = Part(part)
             if t then t:Show() end
         end
     end
+    SetJewelry(bodyShown, true)
     for _, part in ipairs(WEAPON_PARTS) do
         if MissingGear(part) then
             -- An empty off hand is drawn as the shield (the game picks the
@@ -128,6 +190,8 @@ end
 local function SetupFigure()
     local f = DurabilityFrame
     if not f then return end
+
+    CreateJewelry()
 
     local original = DurabilityFrame_SetAlerts
     if original then
