@@ -2,11 +2,11 @@
 
 An addon for **Hordes of Azeroth** that helps you pick better gear:
 
-- **Tier numbers**: each item's tier (the `Tier 10` in the top-right of its tooltip) is printed on its icon, on the character frame, in your bags and in the Extraction Vault's "Mailed to you when you leave" box, like retail item-level addons.
+- **Tier numbers**: each item's tier (the `Tier 10` in the top-right of its tooltip) is printed on its icon, on the character frame, in your bags and bank, and in the Extraction Vault's "Mailed to you when you leave" box, like retail item-level addons.
 - **Quality glow**: an oGlow-style colored border around equipped items on the character frame. HoA's bag window already has its own.
 - **Empty slot warning**: empty character slots glow red, so you can see what's missing. Shirt, tabard and ammo are left out, as are slots your class can't use in HoA (the ones it crosses out, e.g. ranged for most classes). The off hand only glows red when you're holding a one-handed weapon.
 - **Gear comparison** (Pawn-style): every gear tooltip, and the **New** card in the loot window ("Wear it, carry it, or salvage it for Valor"), says how the item compares with what you have equipped, as a % upgrade or downgrade plus the difference in each stat.
-- **Upgrade arrows**: items in your bags and at the Mythic Quartermaster that would be an upgrade get a green arrow. In the loot window, the New item gets a green arrow and each equipped piece it beats gets a red one.
+- **Upgrade arrows**: items in your bags, your bank and at the Mythic Quartermaster that would be an upgrade get a green arrow. In the loot window, the New item gets a green arrow and each equipped piece it beats gets a red one.
 
 ## Installation
 
@@ -48,11 +48,11 @@ The default weights favor damage (Power, Haste and Crit chance at 1.0, most defe
 | --- | --- |
 | `/hbg compare` | Toggle the upgrade summary on tooltips |
 | `/hbg diffs` | Toggle the per-stat differences and score under it |
-| `/hbg arrows` | Toggle upgrade arrows (bags, Quartermaster, loot window) |
+| `/hbg arrows` | Toggle upgrade arrows (bags, bank, Quartermaster, loot window) |
 | `/hbg weights` | List stat weights |
 | `/hbg weight <stat> <number>` | Set a stat weight (`/hbg weight reset` for defaults) |
 | `/hbg tier` | Toggle tier numbers |
-| `/hbg bags` | Toggle tier numbers on bag items |
+| `/hbg bags` | Toggle tier numbers on bag and bank items |
 | `/hbg glow` | Toggle the quality glow on the character frame |
 | `/hbg empty` | Toggle the red glow on empty character slots |
 | `/hbg prefix` | Switch between `10` and `T10` |
@@ -70,6 +70,7 @@ Settings are saved per account in `HoABetterGearDB`.
 - **Tiers** come from the HoA UI addon, using the same lookup as its tooltip: `VanillaBonkUI.FoundAt(bag, slot).tier` for rolled pieces, otherwise `VanillaBonkUI.GearTier(itemId)`.
 - **Stats** come from `VanillaBonkUI.AddGearLines`, which writes the `+X% Stat` lines onto a tooltip. Hovered items are read from the game tooltip; equipped and bag items are read from a hidden one.
 - Everything refreshes when you open the character pane or bags, change gear, move items, or when the game sends gear data (`BONK~...` system messages).
+- The bank is the standard window: main slots `BankFrameItem1-24` (bag -1) and bank bags opened as `ContainerFrameN`; they're refreshed when the bank or a bank bag opens and when bank slots change.
 - The Extraction Vault's "Mailed to you" slots live in `VanillaBonkVault.box.slots`; while the vault is open the addon reads each slot's tier and draws it.
 - The loot window's New card is HoA's own tooltip (`VanillaBonkGearNewTip`); the comparison is added right after HoA fills it in, so the card grows to fit.
 - Quartermaster cards aren't named frames, so while that window is open the addon finds them inside `VanillaBonkQuartermasterFrame` and updates a card's arrow when its item changes.

@@ -419,6 +419,13 @@ end
 
 HookTooltip("SetBagItem", function(bag, slot) return GetContainerItemLink(bag, slot) end)
 HookTooltip("SetMerchantItem", function(index) return GetMerchantItemLink(index) end)
+-- Main bank slots show their tooltip through SetInventoryItem (bank slots
+-- are inventory slots past the equipment ones). Equipped items are skipped.
+HookTooltip("SetInventoryItem", function(unit, slot)
+    if unit == "player" and slot and slot > 19 then
+        return GetInventoryItemLink(unit, slot)
+    end
+end)
 HookTooltip("SetLootItem", function(slot) return GetLootSlotLink(slot) end)
 HookTooltip("SetHyperlink", function(link) return link end)
 if GetBuybackItemLink then
@@ -506,13 +513,13 @@ local function IsUpgrade(link, found, setBase, equippedCache)
     return cmp and (cmp.empty or cmp.score > cmp.otherScore + 0.05) or false
 end
 
+-- Bags and bank.
 local function UpdateBagArrows()
-    if not ns.BagsShown() then return end
     local equipped = {}
-    ns.ForEachBagButton(function(button, bag, slot)
+    ns.ForEachItemButton(function(button, bag, slot)
         local link = ns.db.arrows and GetContainerItemLink(bag, slot)
         local found = link and VanillaBonkUI and VanillaBonkUI.FoundAt and VanillaBonkUI.FoundAt(bag, slot)
-        SetArrow(button, link and IsUpgrade(link, found, function(tip) tip:SetBagItem(bag, slot) end, equipped))
+        SetArrow(button, link and IsUpgrade(link, found, function(tip) ns.SetItemTooltip(tip, bag, slot) end, equipped))
     end)
 end
 

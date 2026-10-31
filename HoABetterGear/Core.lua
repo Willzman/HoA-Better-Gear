@@ -120,6 +120,49 @@ function ns.BagsShown()
     return VanillaBonkBags and VanillaBonkBags:IsShown()
 end
 
+ns.BANK_CONTAINER = BANK_CONTAINER or -1
+
+-- Calls fn(button, bag, slot) for every item button in the (standard) bank
+-- window: the main bank slots BankFrameItem1..24 (bag -1), and bank bags
+-- opened as ContainerFrameN (bags 5-10; HoA handles bags 0-4 itself).
+function ns.ForEachBankButton(fn)
+    if BankFrame and BankFrame:IsShown() then
+        for i = 1, NUM_BANKGENERIC_SLOTS or 24 do
+            local button = getglobal("BankFrameItem" .. i)
+            if button then fn(button, ns.BANK_CONTAINER, button:GetID()) end
+        end
+    end
+    for i = 1, NUM_CONTAINER_FRAMES or 12 do
+        local frame = getglobal("ContainerFrame" .. i)
+        if frame and frame:IsShown() then
+            local bag = frame:GetID()
+            if bag and bag > 4 then
+                for j = 1, GetContainerNumSlots(bag) do
+                    local button = getglobal("ContainerFrame" .. i .. "Item" .. j)
+                    if button then fn(button, bag, button:GetID()) end
+                end
+            end
+        end
+    end
+end
+
+-- Every bag and bank item button that's currently on screen.
+function ns.ForEachItemButton(fn)
+    if ns.BagsShown() then ns.ForEachBagButton(fn) end
+    ns.ForEachBankButton(fn)
+end
+
+-- Shows the item's standard tooltip on 'tip' (used to check usability).
+function ns.SetItemTooltip(tip, bag, slot)
+    if bag == ns.BANK_CONTAINER then
+        if BankButtonIDToInvSlotID then
+            tip:SetInventoryItem("player", BankButtonIDToInvSlotID(slot))
+        end
+    else
+        tip:SetBagItem(bag, slot)
+    end
+end
+
 -------------------------------------------------------------------------------
 -- Events, load hooks and refresh scheduling
 -------------------------------------------------------------------------------
@@ -217,10 +260,24 @@ function ns.RefreshOnShow(parent)
     watcher:SetScript("OnShow", function() ns.Refresh() end)
 end
 
+function ns.RefreshSoonOnShow(parent)
+    if not parent then return end
+    local watcher = CreateFrame("Frame", nil, parent)
+    watcher:SetScript("OnShow", function() ns.ScheduleRefresh() end)
+end
+
 ns.OnLoad(function()
     ns.RefreshOnShow(PaperDollFrame)
     ns.RefreshOnShow(VanillaBonkBags)
+    -- The bank and bank bags fill their buttons when shown, so refresh just
+    -- after that.
+    ns.RefreshSoonOnShow(BankFrame)
+    for i = 1, NUM_CONTAINER_FRAMES or 12 do
+        ns.RefreshSoonOnShow(getglobal("ContainerFrame" .. i))
+    end
 end)
+ns.On("PLAYERBANKSLOTS_CHANGED", ns.ScheduleRefresh)
+ns.On("BANKFRAME_OPENED", ns.ScheduleRefresh)
 
 -------------------------------------------------------------------------------
 -- Slash commands: modules register with ns.Command(name, fn, help)

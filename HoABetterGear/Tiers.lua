@@ -287,9 +287,7 @@ ns.OnRefresh(function()
     for _, s in ipairs(slots) do
         UpdateSlot(s)
     end
-    if ns.BagsShown() then
-        ns.ForEachBagButton(UpdateBagButton)
-    end
+    ns.ForEachItemButton(UpdateBagButton)
 end)
 
 ns.Toggle("glow", "glow", "quality glow")
