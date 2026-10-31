@@ -1,8 +1,8 @@
 ## Interface: 11200
 ## Title: HoA Tier Glow
-## Notes: Quality-colored glow and tier number on character frame item slots (Hordes of Azeroth).
+## Notes: Quality-colored glow and tier numbers on character frame and bag items (Hordes of Azeroth).
 ## Author: Willzman
-## Version: 1.2.0
+## Version: 1.3.0
 ## OptionalDeps: HordesOfAzeroth
 ## SavedVariables: HoATierGlowDB
 

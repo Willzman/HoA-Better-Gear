@@ -1,6 +1,7 @@
 -- HoA Tier Glow
 -- Adds a quality-colored glow (oGlow style) and the item's tier number to
--- every equipment slot on the character frame.
+-- every equipment slot on the character frame, and the tier number to items
+-- in the HoA bags (which already have their own quality glow).
 --
 -- The tier comes straight from the Hordes of Azeroth UI addon, using the same
 -- lookup it uses for the "Tier N" line on item tooltips:
@@ -16,6 +17,7 @@ local ADDON_NAME = "HoATierGlow"
 local DEFAULTS = {
     glow       = true,          -- show the quality glow
     tier       = true,          -- show the tier number
+    bags       = true,          -- show the tier number on bag items
     minQuality = 2,             -- 0 poor, 1 common, 2 uncommon, 3 rare, 4 epic, 5 legendary
     anchor     = "BOTTOMRIGHT", -- where the tier number sits on the icon
     colorTier  = true,          -- color the tier number by item quality (else gold)
@@ -50,10 +52,12 @@ local ANCHORS = {
     BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true,
 }
 
+local BAGS = { 0, 1, 2, 3, 4 }   -- the bags HoA's bag window shows
 local REFRESH_DELAY = 0.1 -- after HoA finishes sending found-item data
 
 local db
 local slots = {}          -- { id = invSlotId, button = frame, glow = tex, text = fontstring }
+local bagSlots = {}       -- [button] = { button = frame, text = fontstring }
 local refreshIn = nil     -- seconds until a scheduled refresh, or nil
 
 -------------------------------------------------------------------------------
@@ -125,12 +129,13 @@ local function GetSlotQuality(slotId, link)
     return nil
 end
 
--- Tier of the item in an equipment slot, the same way HoA's tooltip gets it.
+-- Tier of an item, the same way HoA's tooltip gets it. 'bag' is "inv" for
+-- equipped items (slot = inventory slot id) or a bag number.
 -- Returns tier (or nil), plus where it came from (for /hoatier debug).
-local function GetSlotTier(slotId, link)
+local function GetItemTier(bag, slot, link)
     local ui = VanillaBonkUI
     if not ui then return nil, "HoA UI not loaded" end
-    local found = ui.FoundAt and ui.FoundAt("inv", slotId)
+    local found = ui.FoundAt and ui.FoundAt(bag, slot)
     if found and found.tier then return found.tier, "found" end
     local id = ItemIdFromLink(link)
     if id and ui.GearTier then
@@ -155,6 +160,32 @@ local function ApplyTextStyle(s)
     text:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", db.fontSize, "OUTLINE")
 end
 
+-- A font string on its own frame, so it draws above glows and cooldowns.
+local function CreateTierText(button)
+    local holder = CreateFrame("Frame", nil, button)
+    holder:SetAllPoints(button)
+    holder:SetFrameLevel(button:GetFrameLevel() + 5)
+    local text = holder:CreateFontString(nil, "OVERLAY")
+    text:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", db.fontSize, "OUTLINE")
+    text:SetJustifyH("CENTER")
+    text:Hide()
+    return text
+end
+
+local function ShowTier(text, tier, r, g, b)
+    if not tier then
+        text:Hide()
+        return
+    end
+    text:SetText((db.prefix and "T" or "") .. tier)
+    if db.colorTier and r then
+        text:SetTextColor(r, g, b)
+    else
+        text:SetTextColor(1, 0.82, 0)
+    end
+    text:Show()
+end
+
 local function SetupSlot(slotName)
     local button = getglobal("Character" .. slotName)
     if not button then return end
@@ -173,16 +204,7 @@ local function SetupSlot(slotName)
     glow:SetPoint("CENTER", button, "CENTER", 0, 0)
     glow:Hide()
 
-    -- Text lives on its own frame so it draws above the glow and cooldowns.
-    local holder = CreateFrame("Frame", nil, button)
-    holder:SetAllPoints(button)
-    holder:SetFrameLevel(button:GetFrameLevel() + 5)
-    local text = holder:CreateFontString(nil, "OVERLAY")
-    text:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", db.fontSize, "OUTLINE")
-    text:SetJustifyH("CENTER")
-    text:Hide()
-
-    local s = { id = slotId, button = button, glow = glow, text = text }
+    local s = { id = slotId, button = button, glow = glow, text = CreateTierText(button) }
     ApplyTextStyle(s)
     table.insert(slots, s)
 end
@@ -205,18 +227,39 @@ local function UpdateSlot(s)
         s.glow:Hide()
     end
 
-    local tier = db.tier and GetSlotTier(s.id, link)
-    if tier then
-        s.text:SetText((db.prefix and "T" or "") .. tier)
-        if db.colorTier and r then
-            s.text:SetTextColor(r, g, b)
-        else
-            s.text:SetTextColor(1, 0.82, 0)
+    ShowTier(s.text, db.tier and GetItemTier("inv", s.id, link), r, g, b)
+end
+
+-- HoA's bag window creates its item buttons lazily, named
+-- VanillaBonkBagsItem<bag>_<slot>; decorate whichever exist.
+local function UpdateBags()
+    local bagFrame = VanillaBonkBags
+    if not bagFrame or not bagFrame:IsShown() then return end
+    for _, bag in ipairs(BAGS) do
+        for slot = 1, GetContainerNumSlots(bag) do
+            local button = getglobal("VanillaBonkBagsItem" .. bag .. "_" .. slot)
+            if button then
+                local b = bagSlots[button]
+                if not b then
+                    b = { button = button, text = CreateTierText(button) }
+                    ApplyTextStyle(b)
+                    bagSlots[button] = b
+                end
+                local link = db.tier and db.bags and GetContainerItemLink(bag, slot)
+                if link then
+                    local r, g, bl = ColorFromLink(link)
+                    ShowTier(b.text, GetItemTier(bag, slot, link), r, g, bl)
+                else
+                    b.text:Hide()
+                end
+            end
         end
-        s.text:Show()
-    else
-        s.text:Hide()
     end
+end
+
+local function RestyleAll()
+    for _, s in ipairs(slots) do ApplyTextStyle(s) end
+    for _, b in pairs(bagSlots) do ApplyTextStyle(b) end
 end
 
 local function UpdateAll()
@@ -224,10 +267,27 @@ local function UpdateAll()
     for _, s in ipairs(slots) do
         UpdateSlot(s)
     end
+    UpdateBags()
 end
 
 local function ScheduleRefresh()
     refreshIn = REFRESH_DELAY
+end
+
+-- Refresh whenever the character pane or the HoA bag window opens.
+-- (Children's OnShow fires when their parent is shown.)
+local function WatchShow(parent)
+    if not parent then return end
+    local watcher = CreateFrame("Frame", nil, parent)
+    watcher:SetScript("OnShow", function() UpdateAll() end)
+end
+WatchShow(PaperDollFrame)
+
+local bagsWatched = false
+local function WatchBags()
+    if bagsWatched or not VanillaBonkBags then return end
+    bagsWatched = true
+    WatchShow(VanillaBonkBags)
 end
 
 -------------------------------------------------------------------------------
@@ -238,6 +298,7 @@ local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("UNIT_INVENTORY_CHANGED")
+frame:RegisterEvent("BAG_UPDATE")
 frame:RegisterEvent("CHAT_MSG_SYSTEM")
 
 frame:SetScript("OnEvent", function(self, ev, a1)
@@ -252,6 +313,7 @@ frame:SetScript("OnEvent", function(self, ev, a1)
         for _, name in ipairs(SLOT_NAMES) do
             SetupSlot(name)
         end
+        WatchBags()
     elseif ev == "CHAT_MSG_SYSTEM" then
         -- HoA sends rolled-gear data as "BONK~founditem~..." system messages,
         -- ending with "BONK~foundend". Refresh once its own handler has run.
@@ -261,6 +323,8 @@ frame:SetScript("OnEvent", function(self, ev, a1)
     elseif ev == "UNIT_INVENTORY_CHANGED" then
         if a1 == "player" then ScheduleRefresh() end
     else
+        -- BAG_UPDATE, PLAYER_ENTERING_WORLD
+        WatchBags()
         ScheduleRefresh()
     end
 end)
@@ -273,11 +337,6 @@ frame:SetScript("OnUpdate", function(self, elapsed)
     UpdateAll()
 end)
 
--- Refresh whenever the character pane opens.
-if PaperDollFrame then
-    local watcher = CreateFrame("Frame", nil, PaperDollFrame)
-    watcher:SetScript("OnShow", function() UpdateAll() end)
-end
 
 -------------------------------------------------------------------------------
 -- Slash commands
@@ -295,7 +354,7 @@ local function Debug()
     for _, s in ipairs(slots) do
         local link = GetInventoryItemLink("player", s.id)
         if link then
-            local tier, source = GetSlotTier(s.id, link)
+            local tier, source = GetItemTier("inv", s.id, link)
             Print(s.button:GetName() .. " id " .. tostring(ItemIdFromLink(link))
                 .. ": tier " .. tostring(tier) .. " (" .. source .. ")  " .. Escape(link))
         end
@@ -306,6 +365,7 @@ local function ShowHelp()
     Print("commands:")
     Print("/hoatier glow  - toggle the quality glow (" .. (db.glow and "on" or "off") .. ")")
     Print("/hoatier tier  - toggle the tier number (" .. (db.tier and "on" or "off") .. ")")
+    Print("/hoatier bags  - toggle tier numbers on bag items (" .. (db.bags and "on" or "off") .. ")")
     Print("/hoatier color - toggle quality-colored tier text (" .. (db.colorTier and "on" or "off") .. ")")
     Print("/hoatier prefix - toggle 'T10' vs '10' (" .. (db.prefix and "T10" or "10") .. ")")
     Print("/hoatier quality <0-5> - minimum quality to glow (" .. db.minQuality .. ")")
@@ -329,6 +389,9 @@ SlashCmdList["HOATIERGLOW"] = function(msg)
     elseif cmd == "tier" then
         db.tier = not db.tier
         Print("tier number " .. (db.tier and "on" or "off"))
+    elseif cmd == "bags" then
+        db.bags = not db.bags
+        Print("tier numbers in bags " .. (db.bags and "on" or "off"))
     elseif cmd == "color" then
         db.colorTier = not db.colorTier
         Print("quality-colored tier " .. (db.colorTier and "on" or "off"))
@@ -347,7 +410,7 @@ SlashCmdList["HOATIERGLOW"] = function(msg)
         local a = string.upper(rest or "")
         if ANCHORS[a] then
             db.anchor = a
-            for _, s in ipairs(slots) do ApplyTextStyle(s) end
+            RestyleAll()
             Print("tier anchor set to " .. a)
         else
             Print("invalid anchor")
@@ -356,7 +419,7 @@ SlashCmdList["HOATIERGLOW"] = function(msg)
         local n = tonumber(rest)
         if n and n >= 8 and n <= 24 then
             db.fontSize = n
-            for _, s in ipairs(slots) do ApplyTextStyle(s) end
+            RestyleAll()
             Print("font size set to " .. n)
         else
             Print("usage: /hoatier size <8-24>")
@@ -367,7 +430,7 @@ SlashCmdList["HOATIERGLOW"] = function(msg)
     elseif cmd == "reset" then
         for k in pairs(db) do db[k] = nil end
         CopyDefaults(DEFAULTS, db)
-        for _, s in ipairs(slots) do ApplyTextStyle(s) end
+        RestyleAll()
         Print("settings reset")
     else
         ShowHelp()
