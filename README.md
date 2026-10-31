@@ -23,12 +23,15 @@ A small addon for **Hordes of Azeroth** that decorates the equipment slots on th
 | `/hoatier quality <0-5>` | Minimum quality that gets a glow (default `2` = uncommon) |
 | `/hoatier anchor <point>` | Tier text position: `TOPLEFT`, `TOP`, `TOPRIGHT`, `CENTER`, `BOTTOMLEFT`, `BOTTOM`, `BOTTOMRIGHT` |
 | `/hoatier size <8-24>` | Tier text font size |
+| `/hoatier debug` | Toggle debug output: dumps what the addon reads for each slot, and reports where it finds the tier when you hover an item |
+| `/hoatier clearcache` | Forget tiers learned by hovering |
 | `/hoatier reset` | Restore defaults |
 
 Settings are saved per account in `HoATierGlowDB`.
 
 ## How it works
 
-- The tier is read by scanning a hidden tooltip for a line reading `Tier N`, so it works for whatever the server puts in the tooltip. If item data isn't cached yet, the addon retries every half-second while the character pane is open.
+- The tier is first read by scanning a hidden tooltip for `Tier N` (color codes ignored). If item data isn't cached yet, the addon retries a few times while the character pane is open.
+- HoA can add the tier with its own UI code, which a hidden tooltip never sees. So when you **hover** an equipped item, the addon also reads the tier off the tooltip actually on screen and remembers it per item. Hover each item once and its tier stays on the icon from then on, including after relogging.
 - Quality comes from `GetInventoryItemQuality` / `GetItemInfo`, falling back to the color embedded in the item link.
 - The code avoids newer Lua/API features (`#`, `select`, `string.match`, `hooksecurefunc`, varargs) so it runs on the 1.12-era client as well as later ones.

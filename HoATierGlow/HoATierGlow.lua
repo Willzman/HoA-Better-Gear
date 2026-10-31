@@ -49,7 +49,9 @@ local ANCHORS = {
 local db
 local slots = {}          -- { id = invSlotId, button = frame, glow = tex, text = fontstring }
 local pending = false     -- some slot had an item we couldn't read yet
+local retries = 0         -- how many times we've retried while pending
 local elapsedSince = 0
+local hover = { slot = nil, tries = 0, elapsed = 0 }
 
 -------------------------------------------------------------------------------
 -- Helpers
@@ -122,11 +124,37 @@ end
 
 local scanTip = CreateFrame("GameTooltip", "HoATierGlowScanTip", nil, "GameTooltipTemplate")
 
+local function StripCodes(text)
+    text = string.gsub(text, "|c%x%x%x%x%x%x%x%x", "")
+    text = string.gsub(text, "|r", "")
+    return text
+end
+
+-- Finds "Tier N" anywhere in a string (color codes ignored). Rejects
+-- matches glued to a preceding letter, e.g. "Frontier 3".
 local function FindTier(text)
-    if not text then return nil end
-    local _, _, n = string.find(text, "^%s*[Tt]ier%s+(%d+)%s*$")
-    if n then return tonumber(n) end
-    return nil
+    if type(text) ~= "string" or text == "" then return nil end
+    text = StripCodes(text)
+    local init = 1
+    while true do
+        local st, _, n = string.find(text, "[Tt][Ii][Ee][Rr]%s*:?%s*(%d+)", init)
+        if not st then return nil end
+        if st == 1 or not string.find(string.sub(text, st - 1, st - 1), "%a") then
+            return tonumber(n)
+        end
+        init = st + 1
+    end
+end
+
+-- Key used to remember a tier learned from the on-screen tooltip.
+local function LinkKey(link)
+    local _, _, key = string.find(link, "|H(item:[^|]+)|h")
+    return key or link
+end
+
+local function ItemNameFromLink(link)
+    local _, _, name = string.find(link, "%[(.-)%]")
+    return name
 end
 
 -- Returns tier number, or nil if none; second return is true when the
@@ -155,6 +183,58 @@ local function GetSlotTier(slotId)
     end
     scanTip:Hide()
     return tier, false
+end
+
+-------------------------------------------------------------------------------
+-- Fallback: read the tier from whatever tooltip is on screen.
+-- HoA may add "Tier N" with its own code (or its own tooltip frame), which a
+-- hidden scanning tooltip never sees. When the mouse is over an equipped
+-- slot we look through every visible frame for a "Tier N" string next to
+-- the item's name, and remember it per item.
+-------------------------------------------------------------------------------
+
+local function CollectFontStrings(f, out)
+    if not f.GetRegions then return end
+    local regions = { f:GetRegions() }
+    for _, r in ipairs(regions) do
+        if r.GetObjectType and r:GetObjectType() == "FontString" and r:IsVisible() then
+            local t = r:GetText()
+            if type(t) == "string" and t ~= "" then table.insert(out, t) end
+        end
+    end
+end
+
+local function FrameLabel(f)
+    return (f.GetName and f:GetName()) or "unnamed"
+end
+
+-- Returns tier, frameName
+local function ScanScreenForTier(itemName)
+    if not EnumerateFrames then return nil end
+    local loose, looseFrame, looseCount = nil, nil, 0
+    local f = EnumerateFrames()
+    while f do
+        if f ~= scanTip and f:IsVisible()
+            and f:GetObjectType() ~= "ScrollingMessageFrame" then
+            local texts = {}
+            CollectFontStrings(f, texts)
+            local tier, hasName
+            for _, t in ipairs(texts) do
+                tier = tier or FindTier(t)
+                if itemName and string.find(t, itemName, 1, true) then hasName = true end
+            end
+            if tier then
+                if hasName then return tier, FrameLabel(f) end
+                if tier ~= loose then looseCount = looseCount + 1 end
+                loose, looseFrame = tier, FrameLabel(f)
+            end
+        end
+        f = EnumerateFrames(f)
+    end
+    -- Name and tier may sit on different child frames of a custom tooltip;
+    -- accept that only when exactly one tier value is on screen.
+    if looseCount == 1 then return loose, looseFrame end
+    return nil
 end
 
 -------------------------------------------------------------------------------
@@ -226,7 +306,12 @@ local function UpdateSlot(s)
     -- tier
     if db.tier then
         local tier, notReady = GetSlotTier(s.id)
-        if notReady then pending = true end
+        if tier then
+            db.cache[LinkKey(link)] = tier
+        else
+            tier = db.cache[LinkKey(link)]
+            if notReady and retries < 10 then pending = true end
+        end
         if tier then
             if db.prefix then
                 s.text:SetText("T" .. tier)
@@ -272,28 +357,106 @@ frame:SetScript("OnEvent", function(self, ev, a1)
         if a1 ~= ADDON_NAME then return end
         HoATierGlowDB = CopyDefaults(DEFAULTS, HoATierGlowDB or {})
         db = HoATierGlowDB
+        db.cache = db.cache or {}
         for _, name in ipairs(SLOT_NAMES) do
             SetupSlot(name)
         end
     elseif ev == "UNIT_INVENTORY_CHANGED" then
-        if a1 == "player" then UpdateAll() end
+        if a1 == "player" then retries = 0 UpdateAll() end
     else
+        retries = 0
         UpdateAll()
     end
 end)
 
+local function HoveredSlot()
+    if not GetMouseFocus then return nil end
+    local focus = GetMouseFocus()
+    if not focus then return nil end
+    for _, s in ipairs(slots) do
+        if s.button == focus then return s end
+    end
+    return nil
+end
+
+-- Called every frame while the character pane is open.
+local function HoverLearn(dt)
+    local hs = HoveredSlot()
+    if hs ~= hover.slot then
+        hover.slot, hover.tries, hover.elapsed = hs, 0, 0
+    end
+    if not hs or hover.tries >= 6 then return end
+    hover.elapsed = hover.elapsed + dt
+    if hover.elapsed < 0.15 then return end
+    hover.elapsed = 0
+    hover.tries = hover.tries + 1
+
+    local link = GetInventoryItemLink("player", hs.id)
+    if not link then hover.tries = 6 return end
+    local tier, where = ScanScreenForTier(ItemNameFromLink(link))
+    if tier then
+        hover.tries = 6
+        local key = LinkKey(link)
+        if db.debug then
+            Print("hover: found Tier " .. tier .. " on frame '" .. where .. "'")
+        end
+        if db.cache[key] ~= tier then
+            db.cache[key] = tier
+            UpdateSlot(hs)
+        end
+    elseif hover.tries >= 6 and db.debug then
+        Print("hover: no 'Tier N' text found on any visible frame")
+    end
+end
+
 -- A watcher parented to the paper doll: OnShow fires whenever the character
--- pane opens, and OnUpdate retries slots whose item data wasn't cached yet.
+-- pane opens; OnUpdate retries uncached items and learns tiers on hover.
 if PaperDollFrame then
     local watcher = CreateFrame("Frame", nil, PaperDollFrame)
-    watcher:SetScript("OnShow", function() UpdateAll() end)
-    watcher:SetScript("OnUpdate", function(self, elapsed)
-        if not pending then return end
-        elapsedSince = elapsedSince + (elapsed or arg1 or 0)
-        if elapsedSince < 0.5 then return end
-        elapsedSince = 0
+    watcher:SetScript("OnShow", function()
+        retries = 0
         UpdateAll()
     end)
+    watcher:SetScript("OnUpdate", function(self, elapsed)
+        if not db then return end
+        local dt = elapsed or arg1 or 0
+        HoverLearn(dt)
+        if not pending then return end
+        elapsedSince = elapsedSince + dt
+        if elapsedSince < 0.5 then return end
+        elapsedSince = 0
+        retries = retries + 1
+        UpdateAll()
+    end)
+end
+
+local function Escape(text)
+    if type(text) ~= "string" then return "" end
+    return (string.gsub(text, "|", "||"))
+end
+
+local function Debug()
+    db.debug = not db.debug
+    Print("debug " .. (db.debug and "on - hover your equipped items to see what is found" or "off"))
+    if not db.debug then return end
+    for _, s in ipairs(slots) do
+        local link = GetInventoryItemLink("player", s.id)
+        if link then
+            Print(s.button:GetName() .. ": " .. Escape(link))
+            scanTip:SetOwner(WorldFrame, "ANCHOR_NONE")
+            scanTip:ClearLines()
+            scanTip:SetInventoryItem("player", s.id)
+            local n = scanTip:NumLines() or 0
+            Print("  hidden tooltip lines: " .. n .. ", cached tier: " .. tostring(db.cache[LinkKey(link)]))
+            for i = 1, math.min(n, 2) do
+                local l = getglobal("HoATierGlowScanTipTextLeft" .. i)
+                local r = getglobal("HoATierGlowScanTipTextRight" .. i)
+                local rt = r and r:IsShown() and r:GetText() or ""
+                Print("  " .. i .. ": " .. Escape(l and l:GetText()) .. "  ||  " .. Escape(rt))
+            end
+            scanTip:Hide()
+        end
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -309,6 +472,8 @@ local function ShowHelp()
     Print("/hoatier quality <0-5> - minimum quality to glow (" .. db.minQuality .. ")")
     Print("/hoatier anchor <TOPLEFT|TOP|TOPRIGHT|CENTER|BOTTOMLEFT|BOTTOM|BOTTOMRIGHT> (" .. db.anchor .. ")")
     Print("/hoatier size <8-24> - tier font size (" .. db.fontSize .. ")")
+    Print("/hoatier debug - toggle debug output (shows what the addon reads)")
+    Print("/hoatier clearcache - forget tiers learned by hovering")
     Print("/hoatier reset - restore defaults")
 end
 
@@ -358,9 +523,17 @@ SlashCmdList["HOATIERGLOW"] = function(msg)
         else
             Print("usage: /hoatier size <8-24>")
         end
+    elseif cmd == "debug" then
+        Debug()
+        return
+    elseif cmd == "clearcache" then
+        db.cache = {}
+        Print("learned tiers cleared")
     elseif cmd == "reset" then
+        local cache = db.cache
         for k in pairs(db) do db[k] = nil end
         CopyDefaults(DEFAULTS, db)
+        db.cache = cache or {}
         for _, s in ipairs(slots) do ApplyTextStyle(s) end
         Print("settings reset")
     else
