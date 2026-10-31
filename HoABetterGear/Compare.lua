@@ -314,7 +314,7 @@ if GetBuybackItemLink then
 end
 
 -------------------------------------------------------------------------------
--- Upgrade arrows on bag items
+-- Upgrade arrows (bags and Quartermaster)
 -------------------------------------------------------------------------------
 
 local arrows = {} -- [button] = texture
@@ -333,29 +333,89 @@ local function Arrow(button)
     return a
 end
 
-local function UpdateArrows()
+local function SetArrow(button, show)
+    if show then
+        Arrow(button):Show()
+    elseif arrows[button] then
+        arrows[button]:Hide()
+    end
+end
+
+-- True if the item would be an upgrade over what's equipped.
+local function IsUpgrade(link, found, setBase, equippedCache)
+    if not (link and SlotsFor(link)) then return false end
+    local stats = ScanStats(link, found, setBase)
+    if not stats or stats.unusable then return false end
+    local cmp = Compare(stats, link, equippedCache)
+    return cmp and (cmp.empty or cmp.score > cmp.otherScore + 0.05) or false
+end
+
+local function UpdateBagArrows()
     if not ns.BagsShown() then return end
     local equipped = {}
     ns.ForEachBagButton(function(button, bag, slot)
         local link = ns.db.arrows and GetContainerItemLink(bag, slot)
-        local upgrade = false
-        if link and SlotsFor(link) then
-            local found = VanillaBonkUI and VanillaBonkUI.FoundAt and VanillaBonkUI.FoundAt(bag, slot)
-            local stats = ScanStats(link, found, function(tip) tip:SetBagItem(bag, slot) end)
-            if stats and not stats.unusable then
-                local cmp = Compare(stats, link, equipped)
-                upgrade = cmp and (cmp.empty or cmp.score > cmp.otherScore + 0.05)
-            end
-        end
-        if upgrade then
-            Arrow(button):Show()
-        elseif arrows[button] then
-            arrows[button]:Hide()
-        end
+        local found = link and VanillaBonkUI and VanillaBonkUI.FoundAt and VanillaBonkUI.FoundAt(bag, slot)
+        SetArrow(button, link and IsUpgrade(link, found, function(tip) tip:SetBagItem(bag, slot) end, equipped))
     end)
 end
 
-ns.OnRefresh(UpdateArrows)
+-- HoA's Quartermaster window draws its items as cards (frames with .item,
+-- .slot and .price) that it reuses as you change tabs and pages, so while the
+-- window is open we watch each card's item and update its arrow when it
+-- changes. Cards on the Upgrade tab are your own pieces (HoA puts its own
+-- arrow on those) and are skipped.
+
+local epoch = 0         -- bumped on every refresh (gear or weight changes)
+local cardSeen = {}     -- [card] = { item = item, epoch = n }
+local qmElapsed = 0
+
+local function CollectCards(f, out, depth)
+    local children = { f:GetChildren() }
+    for _, child in ipairs(children) do
+        if type(child.slot) == "table" and type(child.price) == "table" and type(child.name) == "table" then
+            table.insert(out, child)
+        elseif depth > 0 then
+            CollectCards(child, out, depth - 1)
+        end
+    end
+end
+
+local function UpdateQuartermasterArrows(force)
+    local qmFrame = VanillaBonkQuartermasterFrame
+    if not (qmFrame and qmFrame:IsShown() and qmFrame.GetChildren) then return end
+    local cards = {}
+    CollectCards(qmFrame, cards, 3)
+    local equipped
+    for _, card in ipairs(cards) do
+        local item = card.item
+        if type(item) ~= "table" then item = nil end
+        local seen = cardSeen[card]
+        if force or not seen or seen.item ~= item or seen.epoch ~= epoch then
+            cardSeen[card] = { item = item, epoch = epoch }
+            local upgrade = false
+            if ns.db.arrows and item and card:IsShown() and not item.upgrade and item.usable ~= false then
+                equipped = equipped or {}
+                upgrade = type(item.link) == "string" and IsUpgrade(item.link, nil, nil, equipped)
+            end
+            SetArrow(card.slot, upgrade)
+        end
+    end
+end
+
+ns.OnRefresh(function()
+    epoch = epoch + 1
+    UpdateBagArrows()
+    UpdateQuartermasterArrows()
+end)
+
+local qmWatcher = CreateFrame("Frame")
+qmWatcher:SetScript("OnUpdate", function(self, elapsed)
+    qmElapsed = qmElapsed + (elapsed or arg1 or 0)
+    if qmElapsed < 0.2 then return end
+    qmElapsed = 0
+    if ns.db then UpdateQuartermasterArrows() end
+end)
 
 -------------------------------------------------------------------------------
 -- Commands
@@ -363,7 +423,7 @@ ns.OnRefresh(UpdateArrows)
 
 ns.Toggle("compare", "compare", "upgrade summary on tooltips")
 ns.Toggle("diffs", "diffs", "per-stat differences on tooltips")
-ns.Toggle("arrows", "arrows", "upgrade arrows on bag items")
+ns.Toggle("arrows", "arrows", "upgrade arrows (bags and Quartermaster)")
 
 local gmatch = string.gmatch or string.gfind -- gfind on Lua 5.0
 

@@ -5,7 +5,7 @@ An addon for **Hordes of Azeroth** that helps you pick better gear:
 - **Tier numbers**: each item's tier (the `Tier 10` in the top-right of its tooltip) is printed on its icon, on the character frame and in your bags, like retail item-level addons.
 - **Quality glow**: an oGlow-style colored border around equipped items on the character frame. HoA's bag window already has its own.
 - **Gear comparison** (Pawn-style): every gear tooltip says how the item compares with what you have equipped, as a % upgrade or downgrade plus the difference in each stat.
-- **Upgrade arrows**: bag items that would be an upgrade get a green arrow.
+- **Upgrade arrows**: items in your bags and at the Mythic Quartermaster that would be an upgrade get a green arrow.
 
 ## Installation
 
@@ -27,7 +27,7 @@ Better Gear: +64.4% upgrade        vs Deadwalker Mantle
 ```
 
 - Rings, trinkets and one-handed weapons are compared with the **weaker** of your two equipped items, since that's the one you'd replace. An empty slot always counts as an upgrade.
-- Items your class can't use get no comparison and no arrow.
+- Items your class can't use get no comparison and no arrow. Cards on the Quartermaster's Upgrade tab (your own pieces, which HoA already marks with its own arrow) are skipped.
 - Stats are read exactly as HoA shows them, including the bonus lines on rolled items. Set bonuses aren't counted.
 
 The default weights favor damage (Power, Haste and Crit chance at 1.0, most defensive stats at 0.5). Adjust them to your build:
@@ -46,7 +46,7 @@ The default weights favor damage (Power, Haste and Crit chance at 1.0, most defe
 | --- | --- |
 | `/hbg compare` | Toggle the upgrade summary on tooltips |
 | `/hbg diffs` | Toggle the per-stat differences and score under it |
-| `/hbg arrows` | Toggle upgrade arrows on bag items |
+| `/hbg arrows` | Toggle upgrade arrows (bags and Quartermaster) |
 | `/hbg weights` | List stat weights |
 | `/hbg weight <stat> <number>` | Set a stat weight (`/hbg weight reset` for defaults) |
 | `/hbg tier` | Toggle tier numbers |
@@ -67,5 +67,6 @@ Settings are saved per account in `HoABetterGearDB`.
 - **Tiers** come from the HoA UI addon, using the same lookup as its tooltip: `VanillaBonkUI.FoundAt(bag, slot).tier` for rolled pieces, otherwise `VanillaBonkUI.GearTier(itemId)`.
 - **Stats** come from `VanillaBonkUI.AddGearLines`, which writes the `+X% Stat` lines onto a tooltip. Hovered items are read from the game tooltip; equipped and bag items are read from a hidden one.
 - Everything refreshes when you open the character pane or bags, change gear, move items, or when the game sends gear data (`BONK~...` system messages).
+- Quartermaster cards aren't named frames, so while that window is open the addon finds them inside `VanillaBonkQuartermasterFrame` and updates a card's arrow when its item changes.
 - Files: `Core.lua` (settings, events, commands), `Tiers.lua` (tier numbers and glow), `Compare.lua` (comparison and arrows), `UpgradeArrow.tga`.
 - Written for the 1.12.1 client (Lua 5.0).
