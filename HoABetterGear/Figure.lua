@@ -54,14 +54,14 @@ local JEWELRY = {
     -- Rings and trinkets sit off the body in one small column beside the
     -- feet (clear of the weapon picture, which hangs left of the arms):
     -- ring 1, ring 2, trinket 1, trinket 2 from the top.
-    { name = "Ring1", slot = "Finger0Slot", file = "DurabilityRing", size = 8,
-      anchor = { "CENTER", "DurabilityFeet", "LEFT", -4, 11 } },
-    { name = "Ring2", slot = "Finger1Slot", file = "DurabilityRing", size = 8,
-      anchor = { "CENTER", "DurabilityFeet", "LEFT", -4, 2.5 } },
-    { name = "Trinket1", slot = "Trinket0Slot", file = "DurabilityTrinket", size = 8,
-      anchor = { "CENTER", "DurabilityFeet", "LEFT", -4, -6 } },
-    { name = "Trinket2", slot = "Trinket1Slot", file = "DurabilityTrinket", size = 8,
-      anchor = { "CENTER", "DurabilityFeet", "LEFT", -4, -14.5 } },
+    { name = "Ring1", slot = "Finger0Slot", file = "DurabilityRing", size = 7,
+      anchor = { "CENTER", "DurabilityFeet", "LEFT", -1, 16.5 } },
+    { name = "Ring2", slot = "Finger1Slot", file = "DurabilityRing", size = 7,
+      anchor = { "CENTER", "DurabilityFeet", "LEFT", -1, 9 } },
+    { name = "Trinket1", slot = "Trinket0Slot", file = "DurabilityTrinket", size = 7,
+      anchor = { "CENTER", "DurabilityFeet", "LEFT", -1, 1.5 } },
+    { name = "Trinket2", slot = "Trinket1Slot", file = "DurabilityTrinket", size = 7,
+      anchor = { "CENTER", "DurabilityFeet", "LEFT", -1, -6 } }, -- bottom = feet bottom
     -- The cloak hangs behind the body, from the neck down past the legs.
     { name = "Back", slot = "BackSlot", file = "DurabilityCloak", width = 38, height = 44, behind = true,
       anchor = { "TOP", "DurabilityShoulders", "TOP", 0, -6 } },
