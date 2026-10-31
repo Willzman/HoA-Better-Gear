@@ -3,7 +3,7 @@
 An addon for **Hordes of Azeroth** that helps you pick better gear:
 
 - **Tier numbers**: each item's tier (the `Tier 10` in the top-right of its tooltip) is printed on its icon, on the character frame, in your bags and bank, and in the Extraction Vault's "Mailed to you when you leave" box, like retail item-level addons.
-- **Quality glow**: an oGlow-style colored border around equipped items on the character frame. HoA's bag window already has its own.
+- **Quality glow**: an oGlow-style colored border around equipped items on the character frame and items in your bank. HoA's bag window already has its own.
 - **Missing gear on the durability figure**: the little armored figure under the minimap (which shows damaged gear yellow and broken gear red) also shows missing gear in red, using the same rules as the empty-slot glow. The addon adds a necklace, two rings, two trinkets and a cloak (hanging behind the body) to the figure in the same style (dimmed when worn, red when missing), so every slot that matters has a piece. It can be moved anywhere with `/hbg move`.
 
   ![Necklace, ring, trinket and cloak icons](docs/figure-jewelry-preview.png)
@@ -56,7 +56,7 @@ The default weights favor damage (Power, Haste and Crit chance at 1.0, most defe
 | `/hbg weight <stat> <number>` | Set a stat weight (`/hbg weight reset` for defaults) |
 | `/hbg tier` | Toggle tier numbers |
 | `/hbg bags` | Toggle tier numbers on bag and bank items |
-| `/hbg glow` | Toggle the quality glow on the character frame |
+| `/hbg glow` | Toggle the quality glow on the character frame and bank |
 | `/hbg empty` | Toggle the red glow on empty character slots |
 | `/hbg figure` | Toggle missing gear on the durability figure |
 | `/hbg move` | Unlock the durability figure to drag it; type it again to lock (`/hbg move reset` puts it back under the minimap) |

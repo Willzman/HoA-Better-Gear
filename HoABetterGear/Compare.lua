@@ -514,13 +514,22 @@ local function IsUpgrade(link, found, setBase, equippedCache)
 end
 
 -- Bags and bank.
+local bagArrowButtons = {}
+
 local function UpdateBagArrows()
     local equipped = {}
+    local seen = {}
     ns.ForEachItemButton(function(button, bag, slot)
+        seen[button] = true
+        bagArrowButtons[button] = true
         local link = ns.db.arrows and GetContainerItemLink(bag, slot)
         local found = link and VanillaBonkUI and VanillaBonkUI.FoundAt and VanillaBonkUI.FoundAt(bag, slot)
         SetArrow(button, link and IsUpgrade(link, found, function(tip) ns.SetItemTooltip(tip, bag, slot) end, equipped))
     end)
+    -- clear arrows on reused container buttons that weren't updated
+    for button in pairs(bagArrowButtons) do
+        if not seen[button] then SetArrow(button, false) end
+    end
 end
 
 -- HoA's Quartermaster window draws its items as cards (frames with .item,

@@ -216,7 +216,56 @@ end
 -- Bags
 -------------------------------------------------------------------------------
 
+-- Quality of an item from its link: quality, r, g, b (nil if unknown).
+local function LinkQuality(link)
+    local id = ns.ItemIdFromLink(link)
+    local q
+    if id then
+        local _, _, iq = GetItemInfo(id)
+        q = iq
+    end
+    local lr, lg, lb, lq = ns.ColorFromLink(link)
+    if q == nil then q = lq end
+    if q ~= nil then
+        local r, g, b = ns.GetQualityColor(q)
+        return q, r, g, b
+    end
+    if lr then return 99, lr, lg, lb end
+    return nil
+end
+
+-- Bank buttons (the standard window has no quality glow; HoA's bags do).
+local bankGlows = {} -- [button] = texture
+
+local function UpdateBankGlow(button, bag, slot)
+    local glow = bankGlows[button]
+    if not glow then
+        glow = button:CreateTexture(nil, "OVERLAY")
+        glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+        glow:SetBlendMode("ADD")
+        local w = button:GetWidth()
+        if not w or w == 0 then w = 37 end
+        glow:SetWidth(w * 1.85)
+        glow:SetHeight(w * 1.85)
+        glow:SetPoint("CENTER", button, "CENTER", 0, 0)
+        bankGlows[button] = glow
+    end
+    local link = ns.db.glow and GetContainerItemLink(bag, slot)
+    local q, r, g, b
+    if link then q, r, g, b = LinkQuality(link) end
+    if q and q >= ns.db.minQuality then
+        glow:SetVertexColor(r, g, b)
+        glow:SetAlpha(ns.db.glowAlpha)
+        glow:Show()
+    else
+        glow:Hide()
+    end
+end
+
+local itemButtons = {} -- bag/bank buttons that have a tier text
+
 local function UpdateBagButton(button, bag, slot)
+    itemButtons[button] = true
     local b = bagSlots[button]
     if not b then
         b = { button = button, text = CreateTierText(button) }
@@ -296,10 +345,23 @@ ns.OnRefresh(function()
     for _, s in ipairs(slots) do
         UpdateSlot(s)
     end
-    ns.ForEachItemButton(UpdateBagButton)
+    -- The game reuses its container windows for different bags, so clear
+    -- anything left on buttons that weren't updated this time.
+    local seen = {}
+    ns.ForEachItemButton(function(button, bag, slot)
+        seen[button] = true
+        UpdateBagButton(button, bag, slot)
+    end)
+    ns.ForEachBankButton(UpdateBankGlow)
+    for button in pairs(itemButtons) do
+        if not seen[button] then bagSlots[button].text:Hide() end
+    end
+    for button, glow in pairs(bankGlows) do
+        if not seen[button] then glow:Hide() end
+    end
 end)
 
-ns.Toggle("glow", "glow", "quality glow")
+ns.Toggle("glow", "glow", "quality glow (character and bank)")
 ns.Toggle("emptyGlow", "empty", "red glow on empty slots")
 ns.Toggle("tier", "tier", "tier numbers")
 ns.Toggle("bags", "bags", "tier numbers on bag items")
