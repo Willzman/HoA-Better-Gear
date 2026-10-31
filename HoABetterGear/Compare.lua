@@ -321,35 +321,44 @@ end
 -- A thin gold line across the tooltip, drawn over a blank spacer line.
 -- It is sized to the tooltip every frame (the tooltip can widen after we add
 -- our lines) and hidden whenever the tooltip is reused or hidden.
-local separators = {} -- [tooltip] = texture
+local separators = {} -- [tooltip] = { lines = { texture... }, used = n }
 
 local function HideSeparator(tip)
-    if separators[tip] then separators[tip]:Hide() end
+    local sep = separators[tip]
+    if not sep then return end
+    for _, line in ipairs(sep.lines) do line:Hide() end
+    sep.used = 0
 end
 
 local function AddSeparator(tip)
     tip:AddLine(" ")
     local spacer = getglobal(tip:GetName() .. "TextLeft" .. tip:NumLines())
     if not spacer then return end
-    local line = separators[tip]
-    if not line then
-        line = tip:CreateTexture(nil, "ARTWORK")
-        line:SetTexture("Interface\\Buttons\\WHITE8X8")
-        line:SetVertexColor(1, 0.82, 0, 0.8)
-        line:SetHeight(1)
-        separators[tip] = line
+    local sep = separators[tip]
+    if not sep then
+        sep = { lines = {}, used = 0 }
+        separators[tip] = sep
         local onUpdate = tip:GetScript("OnUpdate")
         tip:SetScript("OnUpdate", function(a1, a2)
             if onUpdate then onUpdate(a1, a2) end
-            if line:IsShown() then
-                line:SetWidth(math.max(1, tip:GetWidth() - 20))
+            for i = 1, sep.used do
+                sep.lines[i]:SetWidth(math.max(1, tip:GetWidth() - 20))
             end
         end)
         local onHide = tip:GetScript("OnHide")
         tip:SetScript("OnHide", function(a1, a2)
             if onHide then onHide(a1, a2) end
-            line:Hide()
+            HideSeparator(tip)
         end)
+    end
+    sep.used = sep.used + 1
+    local line = sep.lines[sep.used]
+    if not line then
+        line = tip:CreateTexture(nil, "ARTWORK")
+        line:SetTexture("Interface\\Buttons\\WHITE8X8")
+        line:SetVertexColor(1, 0.82, 0, 0.8)
+        line:SetHeight(1)
+        sep.lines[sep.used] = line
     end
     line:ClearAllPoints()
     line:SetPoint("LEFT", spacer, "LEFT", 0, 0)
@@ -411,33 +420,30 @@ local function AddComparisonBlock(tip, stats, score, other)
     end
 end
 
--- Adds the Better Gear section to a tooltip that HoA has already filled in.
--- Normally compares with the item you'd replace (the weaker ring/trinket);
--- with 'eachSlot' it adds one comparison per equipped slot instead.
+-- Adds the Better Gear section to a tooltip that HoA has already filled in:
+-- one comparison per item it could replace (so both rings / both trinkets),
+-- each under a gold line.
 -- Returns the item's stats, its score and whether it is an upgrade over at
--- least one compared slot (nil if nothing was compared).
-local function AddComparison(tip, link, eachSlot)
+-- least one of them (nil if nothing was compared).
+local function AddComparison(tip, link)
     if not ns.db or not link then return end
     local stats = ParseTooltip(tip)
     if stats.count == 0 or TooltipUnusable(tip) then return end
-    if not SlotsFor(link) then return end
+    local all = CompareTargets(link)
+    if not all then return end
     local score = ns.Score(stats)
 
-    local targets = {} -- equipped stats per compared slot (false = empty)
-    if eachSlot then
-        targets = CompareTargets(link) or {}
-    else
-        local cmp = Compare(stats, link)
-        if not cmp then return end
-        -- Don't compare an item with itself (e.g. hovering the piece you're
-        -- wearing in the vault, whose link is written differently). Same item
-        -- id with a different roll still compares.
-        if cmp.other and ns.ItemIdFromLink(cmp.other.link) == ns.ItemIdFromLink(link)
-            and math.abs(cmp.score - cmp.otherScore) < 0.001 then
-            return
-        end
-        table.insert(targets, cmp.other or false)
+    -- Leave out comparing an item with itself (e.g. hovering a ring you're
+    -- wearing, whose link may be written differently); the other ring still
+    -- compares. Same item id with a different roll still compares.
+    local id = ns.ItemIdFromLink(link)
+    local targets = {} -- equipped stats per comparison (false = empty slot)
+    for _, other in ipairs(all) do
+        local same = other and ns.ItemIdFromLink(other.link) == id
+            and math.abs(ns.Score(other) - score) < 0.001
+        if not same then table.insert(targets, other) end
     end
+    if not targets[1] then return end
 
     local upgrade = false
     for _, other in ipairs(targets) do
@@ -445,9 +451,8 @@ local function AddComparison(tip, link, eachSlot)
     end
     -- /hbg compare off: still report the result (for arrows), just don't draw
     if ns.db.compare then
-        AddSeparator(tip)
-        for i, other in ipairs(targets) do
-            if i > 1 and ns.db.diffs then tip:AddLine(" ") end
+        for _, other in ipairs(targets) do
+            AddSeparator(tip)
             AddComparisonBlock(tip, stats, score, other or nil)
         end
         tip:Show()
@@ -543,7 +548,7 @@ local function WrapSetHyperlink(tip, after)
 end
 
 WrapSetHyperlink(VanillaBonkGearNewTip, function(tip, link)
-    local _, score, upgrade = AddComparison(tip, link, true)
+    local _, score, upgrade = AddComparison(tip, link)
     lootNewScore = score
     local slot = CardSlot(tip)
     if slot then SetArrow(slot, ns.db and ns.db.arrows and upgrade, "up") end
