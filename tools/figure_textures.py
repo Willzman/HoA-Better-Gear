@@ -125,7 +125,9 @@ def render(shape, path, shade=None, alpha=None):
                 pixels.append((0, 0, 0, 0))
                 continue
             # light grey with a highlight toward the top-left, dark outline
-            light = 0.78 + 0.22 * ((py / H) * 0.6 + (1 - px / W) * 0.4)
+            # mid/dark grey like the game's figure: about 140-190 before
+            # shading, a highlight toward the top-left
+            light = 0.55 + 0.20 * ((py / H) * 0.6 + (1 - px / W) * 0.4)
             if shade:
                 light *= shade(px + 0.5, py + 0.5)
             f = fill / a
