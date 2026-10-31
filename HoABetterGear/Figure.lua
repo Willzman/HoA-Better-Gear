@@ -50,18 +50,20 @@ end
 -- have no durability, so they only ever show "missing" (red) or worn (dim).
 local JEWELRY = {
     { name = "Neck",  slot = "NeckSlot",    file = "DurabilityNeck", size = 14,
-      anchor = { "CENTER", "DurabilityHead", "BOTTOM", 0, -1 } },
+      anchor = { "CENTER", "DurabilityHead", "BOTTOM", 0, 2 } },
+    -- Rings and trinkets sit off the body, in a 2x2 group left of the feet:
+    -- rings on top, trinkets below, slot 1 on the outside.
     { name = "Ring1", slot = "Finger0Slot", file = "DurabilityRing", size = 10,
-      anchor = { "CENTER", "DurabilityHands", "BOTTOMLEFT", 4, 3 } },
+      anchor = { "CENTER", "DurabilityFeet", "LEFT", -15, 4 } },
     { name = "Ring2", slot = "Finger1Slot", file = "DurabilityRing", size = 10,
-      anchor = { "CENTER", "DurabilityHands", "BOTTOMRIGHT", -4, 3 } },
+      anchor = { "CENTER", "DurabilityFeet", "LEFT", -4, 4 } },
     { name = "Trinket1", slot = "Trinket0Slot", file = "DurabilityTrinket", size = 10,
-      anchor = { "CENTER", "DurabilityWaist", "LEFT", -6, -4 } },
+      anchor = { "CENTER", "DurabilityFeet", "LEFT", -15, -8 } },
     { name = "Trinket2", slot = "Trinket1Slot", file = "DurabilityTrinket", size = 10,
-      anchor = { "CENTER", "DurabilityWaist", "RIGHT", 6, -4 } },
-    -- The cloak hangs behind the body, from the shoulders down past the legs.
+      anchor = { "CENTER", "DurabilityFeet", "LEFT", -4, -8 } },
+    -- The cloak hangs behind the body, from the neck down past the legs.
     { name = "Back", slot = "BackSlot", file = "DurabilityCloak", width = 38, height = 44, behind = true,
-      anchor = { "TOP", "DurabilityShoulders", "TOP", 0, -2 } },
+      anchor = { "TOP", "DurabilityShoulders", "TOP", 0, -6 } },
 }
 local jewelry = {} -- [name] = texture
 
