@@ -23,15 +23,14 @@ A small addon for **Hordes of Azeroth** that decorates the equipment slots on th
 | `/hoatier quality <0-5>` | Minimum quality that gets a glow (default `2` = uncommon) |
 | `/hoatier anchor <point>` | Tier text position: `TOPLEFT`, `TOP`, `TOPRIGHT`, `CENTER`, `BOTTOMLEFT`, `BOTTOM`, `BOTTOMRIGHT` |
 | `/hoatier size <8-24>` | Tier text font size |
-| `/hoatier debug` | Toggle debug output: dumps what the addon reads for each slot, and reports where it finds the tier when you hover an item |
-| `/hoatier clearcache` | Forget tiers learned by hovering |
+| `/hoatier debug` | List the tier read for each equipped item and where it came from |
 | `/hoatier reset` | Restore defaults |
 
 Settings are saved per account in `HoATierGlowDB`.
 
 ## How it works
 
-- The tier is first read by scanning a hidden tooltip for `Tier N` (color codes ignored). If item data isn't cached yet, the addon retries a few times while the character pane is open.
-- HoA can add the tier with its own UI code, which a hidden tooltip never sees. So when you **hover** an equipped item, the addon also reads the tier off the tooltip actually on screen and remembers it per item. Hover each item once and its tier stays on the icon from then on, including after relogging.
-- Quality comes from `GetInventoryItemQuality` / `GetItemInfo`, falling back to the color embedded in the item link.
-- The code avoids newer Lua/API features (`#`, `select`, `string.match`, `hooksecurefunc`, varargs) so it runs on the 1.12-era client as well as later ones.
+- The tier comes straight from the Hordes of Azeroth UI addon, using the same lookup it uses for the `Tier N` line on tooltips: `VanillaBonkUI.FoundAt("inv", slot).tier` for rolled pieces, otherwise `VanillaBonkUI.GearTier(itemId)` for set, mythic and legendary gear.
+- Numbers refresh when you open the character pane, change gear, or when the game finishes sending rolled-gear data (`BONK~foundend`).
+- Quality comes from `GetItemInfo`, falling back to the color in the item link.
+- Written for the 1.12.1 client (Lua 5.0).
