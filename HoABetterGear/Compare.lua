@@ -231,6 +231,62 @@ local function Signed(n, pct)
     return (n > 0 and "+" or "") .. Round1(n) .. (pct and "%" or "")
 end
 
+local GOLD = "|cffffd100" -- same gold as HoA's "Tier N" tooltip text
+
+-- % upgrade -> WoW rarity color, from smallest to biggest upgrade.
+local UPGRADE_COLORS = {
+    { min = 0,  hex = "|cffffffff" }, -- common     (under 5%)
+    { min = 5,  hex = "|cff1eff00" }, -- uncommon   (5% - 15%)
+    { min = 15, hex = "|cff0070dd" }, -- rare       (15% - 30%)
+    { min = 30, hex = "|cffa335ee" }, -- epic       (30% - 60%)
+    { min = 60, hex = "|cffff8000" }, -- legendary  (60%+, or an empty slot)
+}
+
+local function UpgradeColor(pct)
+    local hex = UPGRADE_COLORS[1].hex
+    for _, c in ipairs(UPGRADE_COLORS) do
+        if pct >= c.min then hex = c.hex end
+    end
+    return hex
+end
+
+-- A thin gold line across the tooltip, drawn over a blank spacer line.
+-- It is sized to the tooltip every frame (the tooltip can widen after we add
+-- our lines) and hidden whenever the tooltip is reused or hidden.
+local separator
+
+local function HideSeparator()
+    if separator then separator:Hide() end
+end
+
+local function AddSeparator(tip)
+    tip:AddLine(" ")
+    local spacer = getglobal(tip:GetName() .. "TextLeft" .. tip:NumLines())
+    if not spacer then return end
+    if not separator then
+        separator = tip:CreateTexture(nil, "ARTWORK")
+        separator:SetTexture("Interface\\Buttons\\WHITE8X8")
+        separator:SetVertexColor(1, 0.82, 0, 0.8)
+        separator:SetHeight(1)
+        local onUpdate = tip:GetScript("OnUpdate")
+        tip:SetScript("OnUpdate", function(a1, a2)
+            if onUpdate then onUpdate(a1, a2) end
+            if separator:IsShown() then
+                separator:SetWidth(math.max(1, tip:GetWidth() - 20))
+            end
+        end)
+        local onHide = tip:GetScript("OnHide")
+        tip:SetScript("OnHide", function(a1, a2)
+            if onHide then onHide(a1, a2) end
+            HideSeparator()
+        end)
+    end
+    separator:ClearAllPoints()
+    separator:SetPoint("LEFT", spacer, "LEFT", 0, 0)
+    separator:SetWidth(math.max(1, tip:GetWidth() - 20))
+    separator:Show()
+end
+
 local function AddComparison(tip, link)
     if not ns.db or not ns.db.compare or not link then return end
     local stats = ParseTooltip(tip)
@@ -244,28 +300,29 @@ local function AddComparison(tip, link)
         return
     end
 
-    tip:AddLine(" ")
+    AddSeparator(tip)
     if cmp.empty then
-        tip:AddDoubleLine("Better Gear: upgrade", "empty slot", 0.2, 1, 0.2, 0.6, 0.6, 0.6)
+        tip:AddDoubleLine(GOLD .. "Better Gear:|r " .. UPGRADE_COLORS[5].hex
+            .. "upgrade|r", "empty slot", 1, 1, 1, 0.6, 0.6, 0.6)
     else
         local diff = cmp.score - cmp.otherScore
-        local headline, r, g, b
+        local result
         if math.abs(diff) < 0.05 then
-            headline, r, g, b = "Better Gear: same score", 1, 1, 1
-        else
-            local pctText
-            if cmp.otherScore > 0 then
-                pctText = Signed(diff / cmp.otherScore * 100, true)
-            else
-                pctText = Signed(diff, false) .. " score"
-            end
+            result = "|cff9d9d9dsame score|r"
+        elseif cmp.otherScore > 0 then
+            local pct = diff / cmp.otherScore * 100
             if diff > 0 then
-                headline, r, g, b = "Better Gear: " .. pctText .. " upgrade", 0.2, 1, 0.2
+                result = UpgradeColor(pct) .. Signed(pct, true) .. " upgrade|r"
             else
-                headline, r, g, b = "Better Gear: " .. pctText .. " downgrade", 1, 0.3, 0.3
+                result = "|cffff4d4d" .. Signed(pct, true) .. " downgrade|r"
             end
+        elseif diff > 0 then
+            result = UpgradeColor(0) .. Signed(diff, false) .. " score upgrade|r"
+        else
+            result = "|cffff4d4d" .. Signed(diff, false) .. " score downgrade|r"
         end
-        tip:AddDoubleLine(headline, "vs " .. (cmp.other.itemName or "equipped"), r, g, b, 0.6, 0.6, 0.6)
+        tip:AddDoubleLine(GOLD .. "Better Gear:|r " .. result, "vs " .. (cmp.other.itemName or "equipped"),
+            1, 1, 1, 0.6, 0.6, 0.6)
     end
 
     if ns.db.diffs then
@@ -299,9 +356,21 @@ local function HookTooltip(method, linkOf)
     local original = GameTooltip[method]
     if not original then return end
     GameTooltip[method] = function(self, a1, a2, a3)
+        HideSeparator() -- the tooltip is being reused for another item
         local r1, r2, r3 = original(self, a1, a2, a3)
         AddComparison(self, linkOf(a1, a2, a3))
         return r1, r2, r3
+    end
+end
+
+-- Any other reuse of the tooltip also clears the separator.
+for _, method in ipairs({ "SetOwner", "ClearLines" }) do
+    local original = GameTooltip[method]
+    if original then
+        GameTooltip[method] = function(self, a1, a2, a3)
+            HideSeparator()
+            return original(self, a1, a2, a3)
+        end
     end
 end
 
