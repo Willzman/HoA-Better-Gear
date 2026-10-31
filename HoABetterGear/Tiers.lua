@@ -100,7 +100,7 @@ local function ShowTier(text, tier, r, g, b)
     if ns.db.colorTier and r then
         text:SetTextColor(r, g, b)
     else
-        text:SetTextColor(1, 0.82, 0)
+        text:SetTextColor(1, 0.82, 0) -- same gold as HoA's "Tier N" tooltip line
     end
     text:Show()
 end

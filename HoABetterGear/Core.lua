@@ -17,7 +17,7 @@ ns.DEFAULTS = {
     bags       = true,          -- tier numbers on bag items
     minQuality = 2,             -- 0 poor, 1 common, 2 uncommon, 3 rare, 4 epic, 5 legendary
     anchor     = "BOTTOMRIGHT", -- where the tier number sits on the icon
-    colorTier  = true,          -- color the tier number by item quality (else gold)
+    colorTier  = false,         -- color the tier number by item quality (else tooltip gold)
     prefix     = false,         -- show "T10" instead of "10"
     glowAlpha  = 0.85,
     fontSize   = 13,
@@ -169,6 +169,11 @@ frame:SetScript("OnEvent", function(self, ev, a1)
             if db[k] == nil then db[k] = v end
         end
         db.weights = db.weights or {}
+        -- v2.1: tier numbers default to the tooltip's gold instead of quality color
+        if (db.settingsVersion or 0) < 1 then
+            db.colorTier = false
+            db.settingsVersion = 1
+        end
         ns.db = db
         for _, fn in ipairs(loaders) do fn() end
         return

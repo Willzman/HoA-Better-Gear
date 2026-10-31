@@ -53,7 +53,7 @@ The default weights favor damage (Power, Haste and Crit chance at 1.0, most defe
 | `/hbg bags` | Toggle tier numbers on bag items |
 | `/hbg glow` | Toggle the quality glow on the character frame |
 | `/hbg prefix` | Switch between `10` and `T10` |
-| `/hbg color` | Toggle quality-colored tier text (off = gold) |
+| `/hbg color` | Toggle quality-colored tier text (default off = the same gold as the tooltip's `Tier N`) |
 | `/hbg quality <0-5>` | Minimum quality that gets a glow (default `2` = uncommon) |
 | `/hbg anchor <point>` | Tier text position: `TOPLEFT`, `TOP`, `TOPRIGHT`, `CENTER`, `BOTTOMLEFT`, `BOTTOM`, `BOTTOMRIGHT` |
 | `/hbg size <8-24>` | Tier text font size |
