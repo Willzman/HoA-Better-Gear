@@ -49,7 +49,10 @@ local SLOTS_BY_EQUIP_LOC = {
     INVTYPE_THROWN = { 18 }, INVTYPE_RANGEDRIGHT = { 18 }, INVTYPE_RELIC = { 18 }, INVTYPE_TABARD = { 19 },
 }
 
-local ARROW_TEXTURE = "Interface\\AddOns\\HoABetterGear\\UpgradeArrow"
+local ARROW_TEXTURES = {
+    up   = "Interface\\AddOns\\HoABetterGear\\UpgradeArrow",   -- green, better item
+    down = "Interface\\AddOns\\HoABetterGear\\DowngradeArrow", -- red, item to replace
+}
 
 -------------------------------------------------------------------------------
 -- Stat names <-> ids
@@ -346,8 +349,10 @@ end
 -- Adds the Better Gear section to a tooltip that HoA has already filled in.
 -- Normally compares with the item you'd replace (the weaker ring/trinket);
 -- with 'eachSlot' it adds one comparison per equipped slot instead.
+-- Returns the item's stats, its score and whether it is an upgrade over at
+-- least one compared slot (nil if nothing was compared).
 local function AddComparison(tip, link, eachSlot)
-    if not ns.db or not ns.db.compare or not link then return end
+    if not ns.db or not link then return end
     local stats = ParseTooltip(tip)
     if stats.count == 0 or TooltipUnusable(tip) then return end
     local slots = SlotsFor(link)
@@ -369,12 +374,20 @@ local function AddComparison(tip, link, eachSlot)
         table.insert(targets, cmp.other or false)
     end
 
-    AddSeparator(tip)
-    for i, other in ipairs(targets) do
-        if i > 1 and ns.db.diffs then tip:AddLine(" ") end
-        AddComparisonBlock(tip, stats, score, other or nil)
+    local upgrade = false
+    for _, other in ipairs(targets) do
+        if not other or score > ns.Score(other) + 0.05 then upgrade = true end
     end
-    tip:Show()
+    -- /hbg compare off: still report the result (for arrows), just don't draw
+    if ns.db.compare then
+        AddSeparator(tip)
+        for i, other in ipairs(targets) do
+            if i > 1 and ns.db.diffs then tip:AddLine(" ") end
+            AddComparisonBlock(tip, stats, score, other or nil)
+        end
+        tip:Show()
+    end
+    return stats, score, upgrade
 end
 
 -- Wrap GameTooltip methods. HoA's own wrappers (which add the stat lines)
@@ -409,51 +422,77 @@ if GetBuybackItemLink then
     HookTooltip("SetBuybackItem", function(index) return GetBuybackItemLink(index) end)
 end
 
+local arrows = {} -- [button] = texture
+
+-- kind: "up" (green, an upgrade) or "down" (red, the item it would replace)
+local function SetArrow(button, show, kind)
+    local a = arrows[button]
+    if not show then
+        if a then a:Hide() end
+        return
+    end
+    if not a then
+        a = ns.Overlay(button):CreateTexture(nil, "OVERLAY")
+        a:SetWidth(16)
+        a:SetHeight(16)
+        a:SetPoint("TOPLEFT", button, "TOPLEFT", 1, -1)
+        arrows[button] = a
+    end
+    a:SetTexture(ARROW_TEXTURES[kind or "up"])
+    a:Show()
+end
+
 -- HoA's loot window ("Wear it, carry it, or salvage it for Valor") shows the
 -- new item on its own tooltip, VanillaBonkGearNewTip, filled by SetHyperlink
 -- (which HoA hooks to add the stats). Add the comparison right after, before
 -- HoA measures the tooltip to size the card and place its buttons. Rings and
 -- trinkets get one comparison per equipped slot, like the cards on the left.
-do
-    local newTip = VanillaBonkGearNewTip
-    local original = newTip and newTip.SetHyperlink
-    if original then
-        newTip.SetHyperlink = function(self, a1, a2, a3)
-            HideSeparator(self)
-            local r1, r2, r3 = original(self, a1, a2, a3)
-            AddComparison(self, a1, true)
-            return r1, r2, r3
-        end
+--
+-- Arrows: green on the New card's icon if it beats what it would replace,
+-- red on each Equipped card whose item it beats. HoA fills the New card
+-- first, then the Equipped cards (VanillaBonkGearWornTip / OtherTip), so
+-- the New item's score is remembered for those.
+local lootNewScore -- score of the item on the New card, nil if not comparable
+
+local function CardSlot(tip)
+    local card = tip.GetParent and tip:GetParent()
+    return card and type(card.slot) == "table" and card.slot or nil
+end
+
+local function WrapSetHyperlink(tip, after)
+    local original = tip and tip.SetHyperlink
+    if not original then return end
+    tip.SetHyperlink = function(self, a1, a2, a3)
+        HideSeparator(self)
+        local r1, r2, r3 = original(self, a1, a2, a3)
+        after(self, a1)
+        return r1, r2, r3
     end
 end
+
+WrapSetHyperlink(VanillaBonkGearNewTip, function(tip, link)
+    local _, score, upgrade = AddComparison(tip, link, true)
+    lootNewScore = score
+    local slot = CardSlot(tip)
+    if slot then SetArrow(slot, ns.db and ns.db.arrows and upgrade, "up") end
+end)
+
+local function OnEquippedCard(tip)
+    local slot = CardSlot(tip)
+    if not slot then return end
+    local beaten = false
+    if ns.db and ns.db.arrows and lootNewScore then
+        local stats = ParseTooltip(tip)
+        beaten = stats.count > 0 and lootNewScore > ns.Score(stats) + 0.05
+    end
+    SetArrow(slot, beaten, "down")
+end
+WrapSetHyperlink(VanillaBonkGearWornTip, OnEquippedCard)
+WrapSetHyperlink(VanillaBonkGearOtherTip, OnEquippedCard)
 
 -------------------------------------------------------------------------------
 -- Upgrade arrows (bags and Quartermaster)
 -------------------------------------------------------------------------------
-
-local arrows = {} -- [button] = texture
-
-local function Arrow(button)
-    local a = arrows[button]
-    if not a then
-        a = ns.Overlay(button):CreateTexture(nil, "OVERLAY")
-        a:SetTexture(ARROW_TEXTURE)
-        a:SetWidth(16)
-        a:SetHeight(16)
-        a:SetPoint("TOPLEFT", button, "TOPLEFT", 1, -1)
-        a:Hide()
-        arrows[button] = a
-    end
-    return a
-end
-
-local function SetArrow(button, show)
-    if show then
-        Arrow(button):Show()
-    elseif arrows[button] then
-        arrows[button]:Hide()
-    end
-end
 
 -- True if the item would be an upgrade over what's equipped.
 local function IsUpgrade(link, found, setBase, equippedCache)
@@ -537,7 +576,7 @@ end)
 
 ns.Toggle("compare", "compare", "upgrade summary on tooltips")
 ns.Toggle("diffs", "diffs", "per-stat differences on tooltips")
-ns.Toggle("arrows", "arrows", "upgrade arrows (bags and Quartermaster)")
+ns.Toggle("arrows", "arrows", "upgrade arrows (bags, Quartermaster, loot window)")
 
 local gmatch = string.gmatch or string.gfind -- gfind on Lua 5.0
 

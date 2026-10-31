@@ -5,7 +5,7 @@ An addon for **Hordes of Azeroth** that helps you pick better gear:
 - **Tier numbers**: each item's tier (the `Tier 10` in the top-right of its tooltip) is printed on its icon, on the character frame and in your bags, like retail item-level addons.
 - **Quality glow**: an oGlow-style colored border around equipped items on the character frame. HoA's bag window already has its own.
 - **Gear comparison** (Pawn-style): every gear tooltip, and the **New** card in the loot window ("Wear it, carry it, or salvage it for Valor"), says how the item compares with what you have equipped, as a % upgrade or downgrade plus the difference in each stat.
-- **Upgrade arrows**: items in your bags and at the Mythic Quartermaster that would be an upgrade get a green arrow.
+- **Upgrade arrows**: items in your bags and at the Mythic Quartermaster that would be an upgrade get a green arrow. In the loot window, the New item gets a green arrow and each equipped piece it beats gets a red one.
 
 ## Installation
 
@@ -47,7 +47,7 @@ The default weights favor damage (Power, Haste and Crit chance at 1.0, most defe
 | --- | --- |
 | `/hbg compare` | Toggle the upgrade summary on tooltips |
 | `/hbg diffs` | Toggle the per-stat differences and score under it |
-| `/hbg arrows` | Toggle upgrade arrows (bags and Quartermaster) |
+| `/hbg arrows` | Toggle upgrade arrows (bags, Quartermaster, loot window) |
 | `/hbg weights` | List stat weights |
 | `/hbg weight <stat> <number>` | Set a stat weight (`/hbg weight reset` for defaults) |
 | `/hbg tier` | Toggle tier numbers |
@@ -70,5 +70,5 @@ Settings are saved per account in `HoABetterGearDB`.
 - Everything refreshes when you open the character pane or bags, change gear, move items, or when the game sends gear data (`BONK~...` system messages).
 - The loot window's New card is HoA's own tooltip (`VanillaBonkGearNewTip`); the comparison is added right after HoA fills it in, so the card grows to fit.
 - Quartermaster cards aren't named frames, so while that window is open the addon finds them inside `VanillaBonkQuartermasterFrame` and updates a card's arrow when its item changes.
-- Files: `Core.lua` (settings, events, commands), `Tiers.lua` (tier numbers and glow), `Compare.lua` (comparison and arrows), `UpgradeArrow.tga`.
+- Files: `Core.lua` (settings, events, commands), `Tiers.lua` (tier numbers and glow), `Compare.lua` (comparison and arrows), `UpgradeArrow.tga` / `DowngradeArrow.tga`.
 - Written for the 1.12.1 client (Lua 5.0).
