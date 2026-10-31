@@ -367,8 +367,11 @@ local function AddComparison(tip, link, eachSlot)
     else
         local cmp = Compare(stats, link)
         if not cmp then return end
-        -- Don't compare an item with itself (e.g. an equipped piece's link).
-        if cmp.other and cmp.other.link == link and math.abs(cmp.score - cmp.otherScore) < 0.001 then
+        -- Don't compare an item with itself (e.g. hovering the piece you're
+        -- wearing in the vault, whose link is written differently). Same item
+        -- id with a different roll still compares.
+        if cmp.other and ns.ItemIdFromLink(cmp.other.link) == ns.ItemIdFromLink(link)
+            and math.abs(cmp.score - cmp.otherScore) < 0.001 then
             return
         end
         table.insert(targets, cmp.other or false)
