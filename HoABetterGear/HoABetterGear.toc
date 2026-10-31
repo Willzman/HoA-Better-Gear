@@ -2,7 +2,7 @@
 ## Title: HoA Better Gear
 ## Notes: Tier numbers, quality glow and Pawn-style gear comparison for Hordes of Azeroth.
 ## Author: Willzman
-## Version: 3.4.1
+## Version: 3.4.2
 ## OptionalDeps: HordesOfAzeroth
 ## SavedVariables: HoABetterGearDB
 
