@@ -1,0 +1,11 @@
+## Interface: 11200
+## Title: HoA Better Gear
+## Notes: Tier numbers, quality glow and Pawn-style gear comparison for Hordes of Azeroth.
+## Author: Willzman
+## Version: 2.0.0
+## OptionalDeps: HordesOfAzeroth
+## SavedVariables: HoABetterGearDB
+
+Core.lua
+Tiers.lua
+Compare.lua
