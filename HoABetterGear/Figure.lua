@@ -5,8 +5,8 @@
 -- gear you're missing in red, using the same rules as the red empty-slot
 -- glow (no shirt/tabard, no slots your class can't use, off hand only next
 -- to a one-handed weapon). The figure has no parts for neck, back, rings or
--- trinkets; this adds a necklace, two rings and two trinkets in the same
--- style (the back still can't show here).
+-- trinkets; this adds a necklace, two rings, two trinkets and a cloak in the
+-- same style.
 --
 -- Based on the 1.12 FrameXML: DurabilityFrame_SetAlerts() colors the parts
 -- named "Durability" .. INVENTORY_ALERT_STATUS_SLOTS[i].slot; body parts
@@ -46,7 +46,7 @@ end
 
 -- Runs right after the game's DurabilityFrame_SetAlerts.
 -- Extra parts for gear the game's figure has no picture for, drawn by this
--- addon in the same style (DurabilityNeck / Ring / Trinket .tga). They
+-- addon in the same style (DurabilityNeck / Ring / Trinket / Cloak .tga). They
 -- have no durability, so they only ever show "missing" (red) or worn (dim).
 local JEWELRY = {
     { name = "Neck",  slot = "NeckSlot",    file = "DurabilityNeck", size = 14,
@@ -59,17 +59,32 @@ local JEWELRY = {
       anchor = { "CENTER", "DurabilityWaist", "LEFT", -6, -4 } },
     { name = "Trinket2", slot = "Trinket1Slot", file = "DurabilityTrinket", size = 10,
       anchor = { "CENTER", "DurabilityWaist", "RIGHT", 6, -4 } },
+    -- The cloak hangs behind the body, from the shoulders down past the legs.
+    { name = "Back", slot = "BackSlot", file = "DurabilityCloak", width = 38, height = 44, behind = true,
+      anchor = { "TOP", "DurabilityShoulders", "TOP", 0, -2 } },
 }
 local jewelry = {} -- [name] = texture
+
+local behindFrame -- draws under the figure (the game's parts are all in one layer)
 
 local function CreateJewelry()
     for _, j in ipairs(JEWELRY) do
         local relative = getglobal(j.anchor[2])
         if relative then
-            local t = DurabilityFrame:CreateTexture(nil, "ARTWORK") -- over the body
+            local t
+            if j.behind then
+                if not behindFrame then
+                    behindFrame = CreateFrame("Frame", nil, DurabilityFrame)
+                    behindFrame:SetFrameStrata("BACKGROUND")
+                    behindFrame:SetAllPoints(DurabilityFrame)
+                end
+                t = behindFrame:CreateTexture(nil, "ARTWORK")
+            else
+                t = DurabilityFrame:CreateTexture(nil, "ARTWORK") -- over the body
+            end
             t:SetTexture("Interface\\AddOns\\HoABetterGear\\" .. j.file)
-            t:SetWidth(j.size)
-            t:SetHeight(j.size)
+            t:SetWidth(j.width or j.size)
+            t:SetHeight(j.height or j.size)
             t:SetPoint(j.anchor[1], relative, j.anchor[3], j.anchor[4], j.anchor[5])
             t:Hide()
             jewelry[j.name] = t
