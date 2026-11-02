@@ -15,16 +15,23 @@ local FONT_SIZE = 9                                   -- HoA's health numbers si
 local shield = 0
 local text
 
--- 12345 -> "12,345"
-local function Grouped(n)
-    local s = tostring(math.floor(n + 0.5))
-    local out = ""
-    while string.len(s) > 3 do
-        out = "," .. string.sub(s, -3) .. out
-        s = string.sub(s, 1, -4)
-    end
-    return s .. out
+-- Short numbers: 845, 1.2k, 10.5k, 105k, 1.2m (a trailing ".0" is dropped).
+local function OneDecimal(n)
+    local s = string.format("%.1f", n)
+    return (string.gsub(s, "%.0$", ""))
 end
+
+local function Short(n)
+    n = math.floor(n + 0.5)
+    if n < 1000 then return tostring(n) end
+    if n < 100000 then
+        local k = math.floor(n / 100 + 0.5) / 10   -- tenths of a thousand
+        if k < 100 then return OneDecimal(k) .. "k" end
+    end
+    if n < 999500 then return math.floor(n / 1000 + 0.5) .. "k" end
+    return OneDecimal(math.floor(n / 100000 + 0.5) / 10) .. "m"
+end
+ns.ShortNumber = Short
 
 local function Update()
     if not text then return end
@@ -32,7 +39,7 @@ local function Update()
         text:Hide()
         return
     end
-    local label = "+" .. Grouped(shield)
+    local label = "+" .. Short(shield)
     if ns.db.shieldPct then
         local maxHealth = UnitHealthMax("player")
         if maxHealth and maxHealth > 0 then

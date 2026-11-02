@@ -9,7 +9,7 @@ An addon for **Hordes of Azeroth** that helps you pick better gear:
   ![Necklace, ring, trinket and cloak icons](docs/figure-jewelry-preview.png)
 - **Empty slot warning**: empty character slots glow red, so you can see what's missing. Shirt, tabard and ammo are left out, as are slots your class can't use in HoA (the ones it crosses out, e.g. ranged for most classes). The off hand only glows red when you're holding a one-handed weapon.
 - **Gear comparison** (Pawn-style): every gear tooltip, and the **New** card in the loot window ("Wear it, carry it, or salvage it for Valor"), says how the item compares with what you have equipped, as a % upgrade or downgrade plus the difference in each stat.
-- **Exact shield amount**: your current Shield is printed in cyan at the right end of the player frame's health bar (e.g. `+52`), next to HoA's cyan shield bar, optionally with its % of your max health.
+- **Exact shield amount**: your current Shield is printed in cyan at the right end of the player frame's health bar (e.g. `+52`, shortened from 1,000 up: `+1.2k`, `+10.5k`, `+105k`, `+1.2m`), next to HoA's cyan shield bar, optionally with its % of your max health.
 - **Upgrade arrows**: items in your bags, your bank and at the Mythic Quartermaster that would be an upgrade get a green arrow. In the loot window, the New item gets a green arrow and each equipped piece it beats gets a red one.
 
 ## Installation
