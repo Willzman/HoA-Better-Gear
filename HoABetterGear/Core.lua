@@ -11,16 +11,15 @@ ns.ADDON = "HoABetterGear"
 ns.BAGS = { 0, 1, 2, 3, 4 } -- the bags HoA's bag window shows
 
 ns.DEFAULTS = {
-    -- tiers / glow
+    -- item levels / glow
     glow       = true,          -- quality glow on the character frame
     emptyGlow  = true,          -- red glow on empty character slots that need gear
     figure     = true,          -- show missing gear on the durability figure
-    tier       = true,          -- tier numbers
-    bags       = true,          -- tier numbers on bag items
+    tier       = true,          -- item level numbers
+    bags       = true,          -- item levels on bag and bank items
     minQuality = 2,             -- 0 poor, 1 common, 2 uncommon, 3 rare, 4 epic, 5 legendary
-    anchor     = "BOTTOMRIGHT", -- where the tier number sits on the icon
-    colorTier  = false,         -- color the tier number by item quality (else tooltip gold)
-    prefix     = false,         -- show "T10" instead of "10"
+    anchor     = "BOTTOMRIGHT", -- where the item level sits on the icon
+    colorTier  = true,          -- color the item level by rarity (else tooltip gold)
     glowAlpha  = 0.85,
     fontSize   = 13,
     -- comparison
@@ -92,7 +91,7 @@ function ns.Escape(text)
     return (string.gsub(text, "|", "||"))
 end
 
--- One overlay frame per item button, shared by the tier text and the
+-- One overlay frame per item button, shared by the item level and the
 -- upgrade arrow, drawn above the button's own glow and cooldown.
 local overlays = {}
 function ns.Overlay(button)
@@ -218,6 +217,12 @@ frame:SetScript("OnEvent", function(self, ev, a1)
         if (db.settingsVersion or 0) < 1 then
             db.colorTier = false
             db.settingsVersion = 1
+        end
+        -- v4.0: item levels instead of tiers, colored by rarity by default
+        if db.settingsVersion < 2 then
+            db.colorTier = true
+            db.prefix = nil
+            db.settingsVersion = 2
         end
         ns.db = db
         for _, fn in ipairs(loaders) do fn() end

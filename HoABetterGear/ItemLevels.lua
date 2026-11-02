@@ -1,12 +1,13 @@
--- HoA Better Gear - tier numbers and quality glow.
+-- HoA Better Gear - item levels and quality glow.
 --
--- Character frame: quality glow (oGlow style) + tier number on every slot.
--- HoA bag window: tier number (HoA already draws its own quality glow).
+-- Character frame: quality glow (oGlow style) + item level on every slot.
+-- HoA bag window, bank, Extraction Vault: item level (plus a glow in the
+-- bank; HoA's bags draw their own).
 --
--- The tier comes straight from the HoA UI addon, the same lookup it uses for
--- the "Tier N" line on tooltips:
---   VanillaBonkUI.FoundAt(bag, slot).tier  -- rolled ("found") pieces
---   VanillaBonkUI.GearTier(itemId)         -- set / mythic / legendary gear
+-- The item level is worked out exactly like HoA's tooltip "ilvl N": the
+-- item's tier (VanillaBonkUI.FoundAt(bag, slot).tier for rolled "found"
+-- pieces, else VanillaBonkUI.GearTier(itemId)) and its quality, through
+-- VanillaBonkUI.ItemLevel(tier, quality).
 
 local ns = HoABetterGear
 
@@ -27,19 +28,51 @@ local ANCHORS = {
 local slots = {}    -- { id = invSlotId, button, glow, text }
 local bagSlots = {} -- [button] = { button, text }
 
--- 'bag' is "inv" for equipped items (slot = inventory slot id) or a bag number.
--- Returns tier (or nil), plus where it came from (for /hbg debug).
-function ns.GetItemTier(bag, slot, link)
+-- The quality HoA uses for an item's level (GetItemInfo, else the link color).
+local function ItemQuality(link)
+    local id = ns.ItemIdFromLink(link)
+    local q
+    if id then
+        local _, _, iq = GetItemInfo(id)
+        q = iq
+    end
+    if q == nil then
+        local _, _, _, lq = ns.ColorFromLink(link)
+        q = lq
+    end
+    return q
+end
+
+-- An item's level, the same way HoA's tooltip gets its "ilvl N":
+--   tier    = VanillaBonkUI.FoundAt(bag, slot).tier  (rolled "found" pieces)
+--             or VanillaBonkUI.GearTier(itemId)      (0 = no level)
+--   level   = VanillaBonkUI.ItemLevel(tier, quality)
+-- 'bag' is "inv" for equipped items (slot = inventory slot id) or a bag
+-- number; 'tier'/'quality' can be passed directly (the vault knows them).
+-- Returns the level (or nil), plus where it came from (for /hbg debug).
+-- With an older HoA that has no item levels, the tier itself is returned.
+function ns.ItemLevelFor(tier, quality)
+    tier = tonumber(tier)
+    if not tier or tier <= 0 then return nil end
+    local ui = VanillaBonkUI
+    if ui and ui.ItemLevel then return ui.ItemLevel(tier, quality) end
+    return tier
+end
+
+function ns.GetItemLevel(bag, slot, link)
     local ui = VanillaBonkUI
     if not ui then return nil, "HoA UI not loaded" end
+    local quality = ItemQuality(link)
     local found = ui.FoundAt and ui.FoundAt(bag, slot)
-    if found and found.tier then return found.tier, "found" end
-    local id = ns.ItemIdFromLink(link)
-    if id and ui.GearTier then
-        local tier = ui.GearTier(id)
-        if tier then return tier, "gear" end
+    if found and tonumber(found.tier) and found.tier > 0 then
+        return ns.ItemLevelFor(found.tier, quality), "found"
     end
-    return nil, "no tier"
+    local id = ns.ItemIdFromLink(link)
+    local tier = id and ui.GearTier and ui.GearTier(id)
+    if tier and tier > 0 then
+        return ns.ItemLevelFor(tier, quality), "gear"
+    end
+    return nil, "no item level"
 end
 
 -- Returns quality, r, g, b for an equipped item (nil if unknown)
@@ -91,16 +124,16 @@ local function CreateTierText(button)
     return text
 end
 
-local function ShowTier(text, tier, r, g, b)
-    if not tier then
+local function ShowLevel(text, level, r, g, b)
+    if not level then
         text:Hide()
         return
     end
-    text:SetText((ns.db.prefix and "T" or "") .. tier)
+    text:SetText(level)
     if ns.db.colorTier and r then
-        text:SetTextColor(r, g, b)
+        text:SetTextColor(r, g, b) -- the item's rarity color
     else
-        text:SetTextColor(1, 0.82, 0) -- same gold as HoA's "Tier N" tooltip line
+        text:SetTextColor(1, 0.82, 0) -- the gold of HoA's "ilvl N" tooltip line
     end
     text:Show()
 end
@@ -200,7 +233,7 @@ local function UpdateSlot(s)
         s.glow:Hide()
     end
 
-    ShowTier(s.text, db.tier and ns.GetItemTier("inv", s.id, link), r, g, b)
+    ShowLevel(s.text, db.tier and ns.GetItemLevel("inv", s.id, link), r, g, b)
 end
 
 -- For other modules: should this character slot (by name, e.g. "HeadSlot")
@@ -275,7 +308,7 @@ local function UpdateBagButton(button, bag, slot)
     local link = ns.db.tier and ns.db.bags and GetContainerItemLink(bag, slot)
     if link then
         local r, g, bl = ns.ColorFromLink(link)
-        ShowTier(b.text, ns.GetItemTier(bag, slot, link), r, g, bl)
+        ShowLevel(b.text, ns.GetItemLevel(bag, slot, link), r, g, bl)
     else
         b.text:Hide()
     end
@@ -308,9 +341,16 @@ local function UpdateVaultSlot(slot)
         local ui = VanillaBonkUI
         tier = ui and ui.GearTier and find.entry and ui.GearTier(find.entry)
     end
+    -- HoA's vault cards take the quality from GetItemInfo, else find.quality
+    local quality
+    if find.entry then
+        local _, _, iq = GetItemInfo(find.entry)
+        quality = iq
+    end
+    quality = quality or find.quality
     local r, g, bl
-    if find.quality then r, g, bl = ns.GetQualityColor(find.quality) end
-    ShowTier(b.text, tier, r, g, bl)
+    if quality then r, g, bl = ns.GetQualityColor(quality) end
+    ShowLevel(b.text, ns.ItemLevelFor(tier, quality), r, g, bl)
 end
 
 local function UpdateVault()
@@ -363,14 +403,14 @@ end)
 
 ns.Toggle("glow", "glow", "quality glow (character and bank)")
 ns.Toggle("emptyGlow", "empty", "red glow on empty slots")
-ns.Toggle("tier", "tier", "tier numbers")
-ns.Toggle("bags", "bags", "tier numbers on bag items")
-ns.Toggle("colorTier", "color", "quality-colored tier text")
-
-ns.Command("prefix", function()
-    ns.db.prefix = not ns.db.prefix
-    ns.Print("tier format " .. (ns.db.prefix and "T10" or "10"))
-end, function() return "/hbg prefix - toggle 'T10' vs '10' (" .. (ns.db.prefix and "T10" or "10") .. ")" end)
+ns.Toggle("tier", "ilvl", "item level numbers")
+-- old name, still works (not listed in the help)
+ns.Command("tier", function()
+    ns.db.tier = not ns.db.tier
+    ns.Print("item level numbers " .. ns.OnOff(ns.db.tier))
+end)
+ns.Toggle("bags", "bags", "item levels on bag and bank items")
+ns.Toggle("colorTier", "color", "rarity-colored item levels (off = gold)")
 
 ns.Command("quality", function(rest)
     local n = tonumber(rest)
@@ -391,7 +431,7 @@ ns.Command("anchor", function(rest)
     end
     ns.db.anchor = a
     ns.Restyle()
-    ns.Print("tier anchor set to " .. a)
+    ns.Print("item level position set to " .. a)
 end, function() return "/hbg anchor <TOPLEFT|TOP|TOPRIGHT|CENTER|BOTTOMLEFT|BOTTOM|BOTTOMRIGHT> (" .. ns.db.anchor .. ")" end)
 
 ns.Command("size", function(rest)
@@ -403,4 +443,4 @@ ns.Command("size", function(rest)
     ns.db.fontSize = n
     ns.Restyle()
     ns.Print("font size set to " .. n)
-end, function() return "/hbg size <8-24> - tier font size (" .. ns.db.fontSize .. ")" end)
+end, function() return "/hbg size <8-24> - item level font size (" .. ns.db.fontSize .. ")" end)

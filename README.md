@@ -2,7 +2,7 @@
 
 An addon for **Hordes of Azeroth** that helps you pick better gear:
 
-- **Tier numbers**: each item's tier (the `Tier 10` in the top-right of its tooltip) is printed on its icon, on the character frame, in your bags and bank, and in the Extraction Vault's "Mailed to you when you leave" box, like retail item-level addons.
+- **Item levels**: each item's level (the `ilvl 36` in the top-right of its tooltip) is printed on its icon in its rarity color, on the character frame, in your bags and bank, and in the Extraction Vault's "Mailed to you when you leave" box, like retail item-level addons.
 - **Quality glow**: an oGlow-style colored border around equipped items on the character frame and items in your bank. HoA's bag window already has its own.
 - **Missing gear on the durability figure**: the little armored figure under the minimap (which shows damaged gear yellow and broken gear red) also shows missing gear in red, using the same rules as the empty-slot glow. The addon adds a necklace, a cloak (hanging behind the body), and two rings and two trinkets (in a small column beside the feet) to the figure in the same style (dimmed when worn, red when missing), so every slot that matters has a piece. It can be moved anywhere with `/hbg move`.
 
@@ -16,7 +16,8 @@ An addon for **Hordes of Azeroth** that helps you pick better gear:
 1. Download the repository (Code → Download ZIP) and extract it.
 2. Copy the **`HoABetterGear`** folder into your game's `Interface/AddOns/` directory, so you end up with `Interface/AddOns/HoABetterGear/HoABetterGear.toc`.
 3. If you used the older **HoA Tier Glow** version, delete the `Interface/AddOns/HoATierGlow` folder.
-4. Restart the game. If the addon shows as *out of date* in the AddOns list, tick **Load out of date AddOns**.
+4. Needs Hordes of Azeroth 0.6.0 or later for item levels (with an older version the icons show the old tier numbers).
+5. Restart the game. If the addon shows as *out of date* in the AddOns list, tick **Load out of date AddOns**.
 
 ## Gear comparison
 
@@ -55,32 +56,31 @@ The default weights favor damage (Power, Haste and Crit chance at 1.0, most defe
 | `/hbg arrows` | Toggle upgrade arrows (bags, bank, Quartermaster, loot window) |
 | `/hbg weights` | List stat weights |
 | `/hbg weight <stat> <number>` | Set a stat weight (`/hbg weight reset` for defaults) |
-| `/hbg tier` | Toggle tier numbers |
-| `/hbg bags` | Toggle tier numbers on bag and bank items |
+| `/hbg ilvl` | Toggle item level numbers (`/hbg tier` still works) |
+| `/hbg bags` | Toggle item levels on bag and bank items |
 | `/hbg glow` | Toggle the quality glow on the character frame and bank |
 | `/hbg empty` | Toggle the red glow on empty character slots |
 | `/hbg figure` | Toggle missing gear on the durability figure |
 | `/hbg move` | Unlock the durability figure to drag it; type it again to lock (`/hbg move reset` puts it back under the minimap) |
-| `/hbg prefix` | Switch between `10` and `T10` |
-| `/hbg color` | Toggle quality-colored tier text (default off = the same gold as the tooltip's `Tier N`) |
+| `/hbg color` | Toggle rarity-colored item levels (default on; off = the gold of the tooltip's `ilvl N`) |
 | `/hbg quality <0-5>` | Minimum quality that gets a glow (default `2` = uncommon) |
-| `/hbg anchor <point>` | Tier text position: `TOPLEFT`, `TOP`, `TOPRIGHT`, `CENTER`, `BOTTOMLEFT`, `BOTTOM`, `BOTTOMRIGHT` |
-| `/hbg size <8-24>` | Tier text font size |
-| `/hbg debug` | List tier, stat lines and score of each equipped item |
+| `/hbg anchor <point>` | Item level position: `TOPLEFT`, `TOP`, `TOPRIGHT`, `CENTER`, `BOTTOMLEFT`, `BOTTOM`, `BOTTOMRIGHT` |
+| `/hbg size <8-24>` | Item level font size |
+| `/hbg debug` | List item level, stat lines and score of each equipped item |
 | `/hbg reset` | Restore default settings (keeps your stat weights) |
 
 Settings are saved per account in `HoABetterGearDB`.
 
 ## How it works
 
-- **Tiers** come from the HoA UI addon, using the same lookup as its tooltip: `VanillaBonkUI.FoundAt(bag, slot).tier` for rolled pieces, otherwise `VanillaBonkUI.GearTier(itemId)`.
+- **Item levels** are worked out exactly like HoA's tooltip: the item's tier (`VanillaBonkUI.FoundAt(bag, slot).tier` for rolled pieces, otherwise `VanillaBonkUI.GearTier(itemId)`) and its quality go through `VanillaBonkUI.ItemLevel(tier, quality)`.
 - **Stats** come from `VanillaBonkUI.AddGearLines`, which writes the `+X% Stat` lines onto a tooltip. Hovered items are read from the game tooltip; equipped and bag items are read from a hidden one.
 - Everything refreshes when you open the character pane or bags, change gear, move items, or when the game sends gear data (`BONK~...` system messages).
 - The bank is the standard window: main slots `BankFrameItem1-24` (bag -1) and bank bags opened as `ContainerFrameN`; they're refreshed when the bank or a bank bag opens and when bank slots change.
-- The Extraction Vault's "Mailed to you" slots live in `VanillaBonkVault.box.slots`; while the vault is open the addon reads each slot's tier and draws it.
+- The Extraction Vault's "Mailed to you" slots live in `VanillaBonkVault.box.slots`; while the vault is open the addon reads each slot's tier and quality and draws its item level.
 - The loot window's New card is HoA's own tooltip (`VanillaBonkGearNewTip`); the comparison is added right after HoA fills it in, so the card grows to fit.
 - Quartermaster cards aren't named frames, so while that window is open the addon finds them inside `VanillaBonkQuartermasterFrame` and updates a card's arrow when its item changes.
 - The durability figure is the game's `DurabilityFrame`: its `DurabilityFrame_SetAlerts` is wrapped to add missing pieces after the game's own coloring, and once moved, its position is kept even when the game re-anchors it under the minimap.
-- Files: `Core.lua` (settings, events, commands), `Tiers.lua` (tier numbers and glow), `Compare.lua` (comparison and arrows), `Figure.lua` (durability figure), `DurabilityNeck.tga` / `DurabilityRing.tga` / `DurabilityTrinket.tga` / `DurabilityCloak.tga` (its added parts), `UpgradeArrow.tga` / `DowngradeArrow.tga`.
+- Files: `Core.lua` (settings, events, commands), `ItemLevels.lua` (item levels and glows), `Compare.lua` (comparison and arrows), `Figure.lua` (durability figure), `DurabilityNeck.tga` / `DurabilityRing.tga` / `DurabilityTrinket.tga` / `DurabilityCloak.tga` (its added parts), `UpgradeArrow.tga` / `DowngradeArrow.tga`.
 - Written for the 1.12.1 client (Lua 5.0).
 - The `.tga` textures are generated by the scripts in `tools/` (`python3 tools/figure_textures.py HoABetterGear`, `python3 tools/arrow_textures.py HoABetterGear/UpgradeArrow.tga up` / `... DowngradeArrow.tga down`). The cloak is faded where the figure's body covers it, using the figure's layout from the 1.12 interface code.

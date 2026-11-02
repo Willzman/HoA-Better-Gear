@@ -299,7 +299,7 @@ local function Signed(n, pct)
     return (n > 0 and "+" or "") .. Round1(n) .. (pct and "%" or "")
 end
 
-local GOLD = "|cffffd100" -- same gold as HoA's "Tier N" tooltip text
+local GOLD = "|cffffd100" -- same gold as HoA's "ilvl N" tooltip text
 
 -- % upgrade -> WoW rarity color, from smallest to biggest upgrade.
 local UPGRADE_COLORS = {
@@ -662,7 +662,7 @@ end)
 
 ns.Toggle("compare", "compare", "upgrade summary on tooltips")
 ns.Toggle("diffs", "diffs", "per-stat differences on tooltips")
-ns.Toggle("arrows", "arrows", "upgrade arrows (bags, Quartermaster, loot window)")
+ns.Toggle("arrows", "arrows", "upgrade arrows (bags, bank, Quartermaster, loot window)")
 
 local gmatch = string.gmatch or string.gfind -- gfind on Lua 5.0
 
@@ -752,13 +752,13 @@ ns.Command("debug", function()
     for slot = 1, 19 do
         local link = GetInventoryItemLink("player", slot)
         if link then
-            local tier, source = ns.GetItemTier("inv", slot, link)
+            local level, source = ns.GetItemLevel("inv", slot, link)
             local stats = EquippedStats(slot)
             ns.Print("slot " .. slot .. " id " .. tostring(ns.ItemIdFromLink(link))
-                .. ": tier " .. tostring(tier) .. " (" .. source .. "), "
+                .. ": ilvl " .. tostring(level) .. " (" .. source .. "), "
                 .. (stats and stats.count or 0) .. " stat lines, score "
                 .. Round1(stats and ns.Score(stats) or 0) .. "  " .. ns.Escape(link))
         end
     end
     return true
-end, function() return "/hbg debug - list tier, stats and score of equipped items" end)
+end, function() return "/hbg debug - list item level, stats and score of equipped items" end)
