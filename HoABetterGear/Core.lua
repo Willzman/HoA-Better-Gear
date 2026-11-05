@@ -18,6 +18,7 @@ ns.DEFAULTS = {
     shield     = true,          -- exact shield amount on the player frame
     shieldPct  = false,         -- ...plus the shield as % of max health
     statsButton = true,         -- pop-out button for the stats window on the character pane
+    statsAlpha = 0.65,          -- stats window background opacity
     tier       = true,          -- item level numbers
     bags       = true,          -- item levels on bag and bank items
     minQuality = 2,             -- 0 poor, 1 common, 2 uncommon, 3 rare, 4 epic, 5 legendary

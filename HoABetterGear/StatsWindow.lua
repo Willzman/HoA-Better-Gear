@@ -133,7 +133,7 @@ local function CreateWindow()
         tile = true, tileSize = 16, edgeSize = 14,
         insets = { left = 3, right = 3, top = 3, bottom = 3 },
     })
-    window:SetBackdropColor(0.05, 0.05, 0.06, 0.88)
+    window:SetBackdropColor(0.05, 0.05, 0.06, ns.db.statsAlpha)
     window:SetBackdropBorderColor(0.6, 0.55, 0.45, 1)
     window:SetClampedToScreen(true)
     window:SetMovable(true)
@@ -267,6 +267,18 @@ ns.Command("stats", function(rest)
         ns.Print("stats window moved back to its default place")
         return true
     end
+    local _, _, opacity = string.find(rest, "^opacity%s*(%d*)$")
+    if opacity then
+        local n = tonumber(opacity)
+        if not (n and n >= 0 and n <= 100) then
+            ns.Print("usage: /hbg stats opacity <0-100> (now " .. math.floor(ns.db.statsAlpha * 100 + 0.5) .. ")")
+            return true
+        end
+        ns.db.statsAlpha = n / 100
+        window:SetBackdropColor(0.05, 0.05, 0.06, ns.db.statsAlpha)
+        ns.Print("stats window background opacity " .. n .. "%")
+        return true
+    end
     if rest == "button" then
         ns.db.statsButton = not ns.db.statsButton
         if ns.db.statsButton then ns.statsButton:Show() else ns.statsButton:Hide() end
@@ -276,5 +288,5 @@ ns.Command("stats", function(rest)
     ToggleWindow()
     return true
 end, function()
-    return "/hbg stats - show/hide the live hero stats window (drag to move; /hbg stats reset; /hbg stats button hides the character pane button)"
+    return "/hbg stats - show/hide the live hero stats window (drag to move; /hbg stats reset; /hbg stats opacity <0-100>; /hbg stats button hides the character pane button)"
 end)

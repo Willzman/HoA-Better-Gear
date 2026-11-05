@@ -66,7 +66,7 @@ The default weights favor damage (Power, Haste and Crit chance at 1.0, most defe
 | `/hbg move` | Unlock the durability figure to drag it; type it again to lock (`/hbg move reset` puts it back under the minimap) |
 | `/hbg shield` | Toggle the shield amount on the player frame |
 | `/hbg shieldpct` | Also show the shield as % of max health (e.g. `+52 (41%)`) |
-| `/hbg stats` | Show/hide the live stats window (`/hbg stats reset` moves it back to its default place; `/hbg stats button` hides/shows its button on the character pane) |
+| `/hbg stats` | Show/hide the live stats window (`/hbg stats reset` moves it back to its default place; `/hbg stats button` hides/shows its button on the character pane; `/hbg stats opacity <0-100>` sets the background opacity, default 65) |
 | `/hbg color` | Toggle rarity-colored item levels (default on; off = the gold of the tooltip's `ilvl N`) |
 | `/hbg quality <0-5>` | Minimum quality that gets a glow (default `2` = uncommon) |
 | `/hbg anchor <point>` | Item level position: `TOPLEFT`, `TOP`, `TOPRIGHT`, `CENTER`, `BOTTOMLEFT`, `BOTTOM`, `BOTTOMRIGHT` |
