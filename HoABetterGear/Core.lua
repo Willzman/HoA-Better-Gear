@@ -19,6 +19,7 @@ ns.DEFAULTS = {
     shieldPct  = false,         -- ...plus the shield as % of max health
     statsButton = true,         -- pop-out button for the stats window on the character pane
     statsAlpha = 0.65,          -- stats window background opacity
+    runColors  = true,          -- color hero stats by how much they've grown this run
     tier       = true,          -- item level numbers
     bags       = true,          -- item levels on bag and bank items
     minQuality = 2,             -- 0 poor, 1 common, 2 uncommon, 3 rare, 4 epic, 5 legendary
@@ -346,10 +347,12 @@ end
 ns.Toggle = Toggle
 
 ns.Command("reset", function()
-    local weights = ns.db.weights
+    local weights, baseline, inRun = ns.db.weights, ns.db.runBaseline, ns.db.runInRun
     for k in pairs(ns.db) do ns.db[k] = nil end
     for k, v in pairs(ns.DEFAULTS) do ns.db[k] = v end
     ns.db.weights = weights
+    ns.db.runBaseline, ns.db.runInRun = baseline, inRun -- keep the current run's start
+    ns.db.settingsVersion = 2
     if ns.Restyle then ns.Restyle() end
     ns.Print("settings reset (stat weights kept - use /hbg weight reset)")
 end, function() return "/hbg reset - restore default settings" end)

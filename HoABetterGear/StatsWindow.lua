@@ -51,6 +51,8 @@ local function SourceLines()
     return lines
 end
 
+ns.HeroStatLines = SourceLines
+
 local function Row(i, perColumn)
     local row = rows[i]
     if row then return row end
@@ -92,6 +94,9 @@ local function Mirror()
         local row = Row(i, perColumn)
         row.label:SetText(line.label:GetText() or "")
         row.value:SetText(line.value:GetText() or "")
+        if ns.StatColor then
+            row.value:SetTextColor(ns.StatColor(line, i, count))
+        end
         row.source = line
         row:Show()
     end

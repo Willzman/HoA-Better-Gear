@@ -236,6 +236,8 @@ local function StatsSection(f, y)
         function() return ns.StatsWindowShown and ns.StatsWindowShown() end,
         function(v) if ns.SetStatsWindowShown then ns.SetStatsWindowShown(v) end end)
     y = DbCheck(f, 2, y, "statsButton", "Pop-out button on the character pane")
+    y = DbCheck(f, 2, y, "runColors", "Color stats by run upgrades",
+        "During a run, stats turn green, blue then purple as they grow past where they started (5%, 15%, 30%), and orange once capped.")
     y = Slider(f, 2, y, "Background opacity", 0, 100, 5,
         function() return math.floor(ns.db.statsAlpha * 100 + 0.5) end,
         function(v) ns.db.statsAlpha = v / 100 end,
@@ -370,10 +372,11 @@ local function CreateSettings()
     -- WeightsSection ends with its reset button's row; put this beside it.
     local buttonRow = bottom + 28
     local defaults = Button(frame, 2, buttonRow, 150, "Restore defaults", function()
-        local weights = ns.db.weights
+        local weights, baseline, inRun = ns.db.weights, ns.db.runBaseline, ns.db.runInRun
         for k in pairs(ns.db) do ns.db[k] = nil end
         for k, v in pairs(ns.DEFAULTS) do ns.db[k] = v end
         ns.db.weights = weights
+        ns.db.runBaseline, ns.db.runInRun = baseline, inRun -- keep the current run's start
         ns.db.settingsVersion = 2
         if ns.ResetStatsPosition then ns.ResetStatsPosition() end
         SyncAll()
