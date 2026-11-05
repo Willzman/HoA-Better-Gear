@@ -206,6 +206,8 @@ end
 
 local function FigureSection(f, y)
     y = Header(f, 2, y, "Durability figure")
+    y = DbCheck(f, 2, y, "figureHidden", "Hide the figure completely",
+        "Hides the armored figure under the minimap altogether, including the game's own damaged and broken gear warnings.")
     y = DbCheck(f, 2, y, "figure", "Show missing gear in red",
         "Also adds the necklace, rings, trinkets and cloak to the figure.")
     local move = Button(f, 2, y - 2, 120, "", function()
