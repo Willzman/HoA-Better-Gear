@@ -188,6 +188,30 @@ local function ToggleWindow()
     if ns.db.statsShown then window:Show() else window:Hide() end
 end
 
+-- For the settings window (and the /hbg stats commands).
+function ns.StatsWindowShown() return window and window:IsShown() or false end
+
+function ns.SetStatsWindowShown(on)
+    if not window then return end
+    ns.db.statsShown = on and true or false
+    if on then window:Show() else window:Hide() end
+end
+
+function ns.ApplyStatsButton()
+    if not ns.statsButton then return end
+    if ns.db.statsButton then ns.statsButton:Show() else ns.statsButton:Hide() end
+end
+
+function ns.ApplyStatsAlpha()
+    if window then window:SetBackdropColor(0.05, 0.05, 0.06, ns.db.statsAlpha) end
+end
+
+function ns.ResetStatsPosition()
+    if not window then return end
+    ns.db.statsPos = nil
+    ApplyPosition()
+end
+
 -- A small pop-out button on the character pane, just above the top-right of
 -- HoA's stats block (over the bottom-right corner of the character model).
 local function CreateButton()
@@ -205,7 +229,12 @@ local function CreateButton()
     button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
     local highlight = button.GetHighlightTexture and button:GetHighlightTexture()
     if highlight then highlight:SetBlendMode("ADD") end
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     button:SetScript("OnClick", function()
+        if arg1 == "RightButton" then
+            if ns.OpenSettings then ns.OpenSettings() end
+            return
+        end
         ToggleWindow()
         -- refresh the tooltip's "open"/"close" wording
         if GameTooltip.IsOwned and GameTooltip:IsOwned(this) then this:GetScript("OnEnter")() end
@@ -214,6 +243,7 @@ local function CreateButton()
         GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
         GameTooltip:SetText("Live stats window", 1, 1, 1)
         GameTooltip:AddLine(window:IsShown() and "Click to close it." or "Click to pop these stats out into a window that updates during your run.", 1, 0.82, 0, 1)
+        GameTooltip:AddLine("Right-click for HoA Better Gear settings.", 0.7, 0.7, 0.7, 1)
         GameTooltip:Show()
     end)
     button:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -262,8 +292,7 @@ ns.Command("stats", function(rest)
         return true
     end
     if rest == "reset" then
-        ns.db.statsPos = nil
-        ApplyPosition()
+        ns.ResetStatsPosition()
         ns.Print("stats window moved back to its default place")
         return true
     end
@@ -275,13 +304,13 @@ ns.Command("stats", function(rest)
             return true
         end
         ns.db.statsAlpha = n / 100
-        window:SetBackdropColor(0.05, 0.05, 0.06, ns.db.statsAlpha)
+        ns.ApplyStatsAlpha()
         ns.Print("stats window background opacity " .. n .. "%")
         return true
     end
     if rest == "button" then
         ns.db.statsButton = not ns.db.statsButton
-        if ns.db.statsButton then ns.statsButton:Show() else ns.statsButton:Hide() end
+        ns.ApplyStatsButton()
         ns.Print("stats button on the character pane " .. ns.OnOff(ns.db.statsButton))
         return true
     end

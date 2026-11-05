@@ -304,7 +304,7 @@ function ns.Command(name, fn, help)
 end
 
 local function ShowHelp()
-    ns.Print("commands (/bettergear or /hbg):")
+    ns.Print("commands (/bettergear or /hbg; /hbg on its own opens the settings window):")
     for _, c in ipairs(commandOrder) do
         if c.help then ns.Print(c.help()) end
     end
@@ -316,9 +316,17 @@ SlashCmdList["HOABETTERGEAR"] = function(msg)
     if not ns.db then return end
     msg = string.lower(msg or "")
     local _, _, cmd, rest = string.find(msg, "^%s*(%S*)%s*(.-)%s*$")
+    if cmd == "" or cmd == "config" or cmd == "settings" or cmd == "options" then
+        if ns.OpenSettings then
+            ns.OpenSettings()
+        else
+            ShowHelp()
+        end
+        return
+    end
     local fn = commands[cmd or ""]
     if not fn then
-        ShowHelp()
+        ShowHelp() -- including /hbg help
         return
     end
     if not fn(rest or "") then

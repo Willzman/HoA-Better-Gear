@@ -81,6 +81,26 @@ local function StatKey(name)
     return (statIdByKey and statIdByKey[string.lower(name)]) or name
 end
 
+-- For the settings window: { { id = n, name = "Power" }, ... } in id order.
+function ns.StatList()
+    BuildStatNames()
+    local list = {}
+    if not statNames then return list end
+    for id = 0, MAX_STAT_ID do
+        if statNames[id] then table.insert(list, { id = id, name = statNames[id] }) end
+    end
+    return list
+end
+
+-- nil (or the default value) goes back to the default weight.
+function ns.SetWeight(id, value)
+    if value == nil or value == ns.DEFAULT_WEIGHTS[id] then
+        ns.db.weights[id] = nil
+    else
+        ns.db.weights[id] = value
+    end
+end
+
 function ns.Weight(key)
     local w = ns.db.weights[key]
     if w then return w end

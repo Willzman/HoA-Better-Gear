@@ -209,6 +209,22 @@ local function SetUnlocked(on)
     Redraw()
 end
 
+-- For the settings window (and the /hbg move command).
+function ns.FigureUnlocked() return unlocked end
+
+function ns.SetFigureUnlocked(on)
+    if DurabilityFrame then SetUnlocked(on and true or false) end
+end
+
+function ns.ResetFigurePosition()
+    if not DurabilityFrame then return end
+    ns.db.figurePos = nil
+    if unlocked then SetUnlocked(false) end
+    Redraw()
+    -- let the game put it back under the minimap right away
+    if UIParent_ManageFramePositions then UIParent_ManageFramePositions() end
+end
+
 local function SetupFigure()
     local f = DurabilityFrame
     if not f then return end
@@ -265,11 +281,7 @@ ns.Command("move", function(rest)
         return true
     end
     if rest == "reset" then
-        ns.db.figurePos = nil
-        if unlocked then SetUnlocked(false) end
-        Redraw()
-        -- let the game put it back under the minimap right away
-        if UIParent_ManageFramePositions then UIParent_ManageFramePositions() end
+        ns.ResetFigurePosition()
         ns.Print("durability figure back in its usual place")
         return true
     end
