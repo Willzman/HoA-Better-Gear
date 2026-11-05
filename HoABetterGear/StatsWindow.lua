@@ -183,9 +183,48 @@ local function CreateWindow()
     ApplyPosition()
 end
 
+local function ToggleWindow()
+    ns.db.statsShown = not window:IsShown()
+    if ns.db.statsShown then window:Show() else window:Hide() end
+end
+
+-- A small pop-out button on the character pane, just above the top-right of
+-- HoA's stats block (over the bottom-right corner of the character model).
+local function CreateButton()
+    local button = CreateFrame("Button", "HoABetterGearStatsButton", PaperDollFrame)
+    button:SetWidth(16)
+    button:SetHeight(16)
+    if VanillaBonkHeroStats then
+        button:SetPoint("BOTTOMRIGHT", VanillaBonkHeroStats, "TOPRIGHT", -2, 2)
+    else
+        button:SetPoint("TOPLEFT", PaperDollFrame, "TOPLEFT", 280, -272)
+    end
+    -- above the character model, which would otherwise take the clicks
+    button:SetFrameLevel(PaperDollFrame:GetFrameLevel() + 10)
+    button:SetNormalTexture("Interface\\AddOns\\HoABetterGear\\PopOutButton")
+    button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
+    local highlight = button.GetHighlightTexture and button:GetHighlightTexture()
+    if highlight then highlight:SetBlendMode("ADD") end
+    button:SetScript("OnClick", function()
+        ToggleWindow()
+        -- refresh the tooltip's "open"/"close" wording
+        if GameTooltip.IsOwned and GameTooltip:IsOwned(this) then this:GetScript("OnEnter")() end
+    end)
+    button:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Live stats window", 1, 1, 1)
+        GameTooltip:AddLine(window:IsShown() and "Click to close it." or "Click to pop these stats out into a window that updates during your run.", 1, 0.82, 0, 1)
+        GameTooltip:Show()
+    end)
+    button:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    if not ns.db.statsButton then button:Hide() end
+    return button
+end
+
 local function Setup()
     if not PaperDollFrame then return end
     CreateWindow()
+    ns.statsButton = CreateButton()
 
     -- Let HoA keep its stats panel up to date while this window is open.
     isVisible = PaperDollFrame.IsVisible
@@ -228,9 +267,14 @@ ns.Command("stats", function(rest)
         ns.Print("stats window moved back to its default place")
         return true
     end
-    ns.db.statsShown = not window:IsShown()
-    if ns.db.statsShown then window:Show() else window:Hide() end
+    if rest == "button" then
+        ns.db.statsButton = not ns.db.statsButton
+        if ns.db.statsButton then ns.statsButton:Show() else ns.statsButton:Hide() end
+        ns.Print("stats button on the character pane " .. ns.OnOff(ns.db.statsButton))
+        return true
+    end
+    ToggleWindow()
     return true
 end, function()
-    return "/hbg stats - show/hide the live hero stats window (drag to move; /hbg stats reset)"
+    return "/hbg stats - show/hide the live hero stats window (drag to move; /hbg stats reset; /hbg stats button hides the character pane button)"
 end)
