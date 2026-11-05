@@ -128,12 +128,6 @@ local function ShowMissing()
         DurabilityFrame:Show()
         return
     end
-    -- Hidden altogether: not even the game's damaged/broken warnings.
-    if ns.db.figureHidden then
-        SetJewelry(false)
-        DurabilityFrame:Hide()
-        return
-    end
     if not ns.db.figure then
         SetJewelry(false)
         return
@@ -279,13 +273,6 @@ ns.Command("figure", function()
     ns.Print("missing gear on the durability figure " .. ns.OnOff(ns.db.figure))
 end, function()
     return "/hbg figure - toggle missing gear on the durability figure (" .. ns.OnOff(ns.db.figure) .. ")"
-end)
-
-ns.Command("hidefigure", function()
-    ns.db.figureHidden = not ns.db.figureHidden
-    ns.Print("durability figure " .. (ns.db.figureHidden and "hidden" or "shown when needed"))
-end, function()
-    return "/hbg hidefigure - hide the durability figure completely (" .. (ns.db.figureHidden and "hidden" or "shown") .. ")"
 end)
 
 ns.Command("move", function(rest)

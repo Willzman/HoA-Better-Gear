@@ -4,7 +4,7 @@ An addon for **Hordes of Azeroth** that helps you pick better gear:
 
 - **Item levels**: each item's level (the `ilvl 36` in the top-right of its tooltip) is printed on its icon in its rarity color, on the character frame, in your bags and bank, and in the Extraction Vault's "Mailed to you when you leave" box, like retail item-level addons.
 - **Quality glow**: an oGlow-style colored border around equipped items on the character frame and items in your bank. HoA's bag window already has its own.
-- **Missing gear on the durability figure**: the little armored figure under the minimap (which shows damaged gear yellow and broken gear red) also shows missing gear in red, using the same rules as the empty-slot glow. The addon adds a necklace, a cloak (hanging behind the body), and two rings and two trinkets (in a small column beside the feet) to the figure in the same style (dimmed when worn, red when missing), so every slot that matters has a piece. It can be moved anywhere with `/hbg move`, or hidden altogether.
+- **Missing gear on the durability figure**: the little armored figure under the minimap (which shows damaged gear yellow and broken gear red) also shows missing gear in red, using the same rules as the empty-slot glow. The addon adds a necklace, a cloak (hanging behind the body), and two rings and two trinkets (in a small column beside the feet) to the figure in the same style (dimmed when worn, red when missing), so every slot that matters has a piece. It can be moved anywhere with `/hbg move`.
 
   ![Necklace, ring, trinket and cloak icons](docs/figure-jewelry-preview.png)
 - **Empty slot warning**: empty character slots glow red, so you can see what's missing. Shirt, tabard and ammo are left out, as are slots your class can't use in HoA (the ones it crosses out, e.g. ranged for most classes). The off hand only glows red when you're holding a one-handed weapon.
@@ -70,7 +70,6 @@ The default weights favor damage (Power, Haste and Crit chance at 1.0, most defe
 | `/hbg glow` | Toggle the quality glow on the character frame and bank |
 | `/hbg empty` | Toggle the red glow on empty character slots |
 | `/hbg figure` | Toggle missing gear on the durability figure |
-| `/hbg hidefigure` | Hide the durability figure completely (including the game's damaged/broken warnings) |
 | `/hbg move` | Unlock the durability figure to drag it; type it again to lock (`/hbg move reset` puts it back under the minimap) |
 | `/hbg shield` | Toggle the shield amount on the player frame |
 | `/hbg shieldpct` | Also show the shield as % of max health (e.g. `+52 (41%)`) |

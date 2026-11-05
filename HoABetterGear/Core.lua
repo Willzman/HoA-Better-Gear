@@ -15,7 +15,6 @@ ns.DEFAULTS = {
     glow       = true,          -- quality glow on the character frame
     emptyGlow  = true,          -- red glow on empty character slots that need gear
     figure     = true,          -- show missing gear on the durability figure
-    figureHidden = false,       -- hide the durability figure altogether
     shield     = true,          -- exact shield amount on the player frame
     shieldPct  = false,         -- ...plus the shield as % of max health
     statsButton = true,         -- pop-out button for the stats window on the character pane
