@@ -390,10 +390,10 @@ local NO_STATS = { values = {}, order = {}, names = {}, pct = {} }
 
 -- One "Better Gear: ..." headline, plus per-stat differences and scores.
 -- 'other' is the equipped item's stats, or nil for an empty slot.
-local function AddComparisonBlock(tip, stats, score, other)
+local function AddComparisonBlock(tip, stats, score, other, emptyLabel)
     if not other then
         tip:AddDoubleLine(GOLD .. "Better Gear:|r " .. UPGRADE_COLORS[5].hex
-            .. "upgrade|r", "empty slot", 1, 1, 1, 0.6, 0.6, 0.6)
+            .. "upgrade|r", emptyLabel or "empty slot", 1, 1, 1, 0.6, 0.6, 0.6)
     else
         local otherScore = ns.Score(other)
         local diff = score - otherScore
@@ -445,11 +445,22 @@ end
 -- each under a gold line.
 -- Returns the item's stats, its score and whether it is an upgrade over at
 -- least one of them (nil if nothing was compared).
-local function AddComparison(tip, link)
+-- 'against' optionally replaces what's equipped with a given list:
+-- { targets = { stats... }, emptyLabel = "..." } (an empty list counts as
+-- an empty slot).
+local function AddComparison(tip, link, against)
     if not ns.db or not link then return end
     local stats = ParseTooltip(tip)
     if stats.count == 0 or TooltipUnusable(tip) then return end
-    local all = CompareTargets(link)
+    local all, emptyLabel
+    if against then
+        all = {}
+        for _, other in ipairs(against.targets) do table.insert(all, other) end
+        if not all[1] then all[1] = false end
+        emptyLabel = against.emptyLabel
+    else
+        all = CompareTargets(link)
+    end
     if not all then return end
     local score = ns.Score(stats)
 
@@ -463,7 +474,10 @@ local function AddComparison(tip, link)
             and math.abs(ns.Score(other) - score) < 0.001
         if not same then table.insert(targets, other) end
     end
-    if not targets[1] then return end
+    -- (false entries are empty slots, so count rather than test targets[1])
+    local count = 0
+    for _ in ipairs(targets) do count = count + 1 end
+    if count == 0 then return end
 
     local upgrade = false
     for _, other in ipairs(targets) do
@@ -473,7 +487,7 @@ local function AddComparison(tip, link)
     if ns.db.compare then
         for _, other in ipairs(targets) do
             AddSeparator(tip)
-            AddComparisonBlock(tip, stats, score, other or nil)
+            AddComparisonBlock(tip, stats, score, other or nil, emptyLabel)
         end
         tip:Show()
     end
@@ -521,12 +535,43 @@ HookTooltip("SetLootItem", function(slot) return GetLootSlotLink(slot) end)
 -- .find) the comparison waits until HoA shows the finished tooltip, and is
 -- added at the bottom then.
 local vaultPending -- the link to compare once HoA shows the vault tooltip
+local vaultFind    -- the hovered vault item's data (HoA's .find)
 
-local function HoveringVaultItem()
+local function HoveredVaultFind()
     local vault = VanillaBonkVault
-    if not (vault and vault:IsShown() and GetMouseFocus) then return false end
+    if not (vault and vault:IsShown() and GetMouseFocus) then return nil end
     local focus = GetMouseFocus()
-    return focus and type(focus.find) == "table" or false
+    local find = focus and focus.find
+    if type(find) == "table" then return find end
+    return nil
+end
+
+-- A piece you're already wearing would only compare with itself, so in the
+-- vault it's compared with your saved piece(s) instead - the "Yours:" items
+-- on the card (HoA's find.saved = { { entry, place = "bag:slot" }, ... }).
+local function SavedTargets(find)
+    local against = { targets = {}, emptyLabel = "nothing saved" }
+    if type(find.saved) ~= "table" then return against end
+    local ui = VanillaBonkUI
+    for _, saved in ipairs(find.saved) do
+        local entry = type(saved) == "table" and saved.entry or tonumber(saved)
+        if entry then
+            local found
+            if type(saved) == "table" and saved.place and ui and ui.FoundAt then
+                local _, _, bag, slot = string.find(saved.place, "^([^:]+):(%d+)$")
+                if bag then
+                    local piece = ui.FoundAt(bag == "inv" and "inv" or tonumber(bag), tonumber(slot))
+                    if piece and piece.entry == entry then found = piece end
+                end
+            end
+            local stats = ScanStats("item:" .. entry .. ":0:0:0", found)
+            if stats and stats.count > 0 then
+                stats.itemName = (GetItemInfo(entry) or "your piece") .. " (saved)"
+                table.insert(against.targets, stats)
+            end
+        end
+    end
+    return against
 end
 
 do
@@ -534,10 +579,11 @@ do
     if original then
         GameTooltip.SetHyperlink = function(self, a1, a2, a3)
             HideSeparator(self)
-            vaultPending = nil
+            vaultPending, vaultFind = nil, nil
             local r1, r2, r3 = original(self, a1, a2, a3)
-            if HoveringVaultItem() then
-                vaultPending = a1
+            local find = HoveredVaultFind()
+            if find then
+                vaultPending, vaultFind = a1, find
             else
                 AddComparison(self, a1)
             end
@@ -546,15 +592,16 @@ do
     end
     local show = GameTooltip.Show
     GameTooltip.Show = function(self)
-        local link = vaultPending
+        local link, find = vaultPending, vaultFind
         if not link then return show(self) end
-        vaultPending = nil
+        vaultPending, vaultFind = nil, nil
         show(self)
-        AddComparison(self, link) -- shows the tooltip again, now with the section
+        -- shows the tooltip again, now with the section
+        AddComparison(self, link, find.worn and SavedTargets(find) or nil)
     end
     local onHide = GameTooltip:GetScript("OnHide")
     GameTooltip:SetScript("OnHide", function(a1, a2)
-        vaultPending = nil
+        vaultPending, vaultFind = nil, nil
         if onHide then onHide(a1, a2) end
     end)
 end
