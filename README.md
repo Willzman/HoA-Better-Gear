@@ -3,7 +3,7 @@
 An addon for **Hordes of Azeroth** that helps you pick better gear:
 
 - **Item levels**: each item's level (the `ilvl 36` in the top-right of its tooltip) is printed on its icon in its rarity color, on the character frame, in your bags and bank, and in the Extraction Vault's "Mailed to you when you leave" box, like retail item-level addons.
-- **Average item level**: shown on the character pane just above Power (e.g. `Item level: 78.4`). Like retail, it covers every slot your class uses (not shirt, tabard, ammo or slots HoA locks for your class); an empty slot that needs gear counts as 0 and a two-hander counts twice.
+- **Average item level**: shown on the character pane just above Power (e.g. `Item level: 78.4`). Like retail, it covers every slot your class uses (not shirt, tabard, ammo or slots HoA locks for your class); an empty slot that needs gear counts as 0 and a two-hander counts twice. The number is colored by the average rarity of the same slots (an empty slot counts as poor), rounded to the nearest quality.
 - **Quality glow**: an oGlow-style colored border around equipped items on the character frame and items in your bank. HoA's bag window already has its own.
 - **Missing gear on the durability figure**: the little armored figure under the minimap (which shows damaged gear yellow and broken gear red) also shows missing gear in red, using the same rules as the empty-slot glow. The addon adds a necklace, a cloak (hanging behind the body), and two rings and two trinkets (in a small column beside the feet) to the figure in the same style (dimmed when worn, red when missing), so every slot that matters has a piece. It can be moved anywhere with `/hbg move`.
 

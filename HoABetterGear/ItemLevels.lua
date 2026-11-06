@@ -380,6 +380,8 @@ end)
 -- Like retail: every slot your class uses (no shirt, tabard, ammo or slots
 -- HoA locks), an empty slot that needs gear counts as 0, a two-hander counts
 -- twice (it fills both hands), and items without an item level are left out.
+-- The number is colored by the average rarity of the same slots (an empty
+-- slot counts as poor), rounded to the nearest quality.
 
 local averageLabel, averageValue
 
@@ -390,8 +392,10 @@ local function IsTwoHander(link)
     return equipLoc == "INVTYPE_2HWEAPON"
 end
 
+-- Returns the average item level and the average quality (or nil).
 function ns.AverageItemLevel()
     local total, count = 0, 0
+    local qualityTotal = 0
     local offHandLocked = false
     for _, s in ipairs(slots) do
         if s.name == "SecondaryHandSlot" then offHandLocked = SlotLocked(s) end
@@ -402,10 +406,14 @@ function ns.AverageItemLevel()
             if link then
                 local level = ns.GetItemLevel("inv", s.id, link)
                 if level then
-                    total, count = total + level, count + 1
+                    local quality = LinkQuality(link) or 0
+                    if quality > 7 then quality = 0 end -- unknown custom color
+                    local times = 1
                     if s.name == "MainHandSlot" and not offHandLocked and IsTwoHander(link) then
-                        total, count = total + level, count + 1
+                        times = 2
                     end
+                    total, count = total + level * times, count + times
+                    qualityTotal = qualityTotal + quality * times
                 end
             elseif EmptySlotNeedsGear(s) then
                 count = count + 1
@@ -413,7 +421,7 @@ function ns.AverageItemLevel()
         end
     end
     if count == 0 then return nil end
-    return total / count
+    return total / count, qualityTotal / count
 end
 
 local function CreateAverage()
@@ -438,12 +446,18 @@ end
 
 local function UpdateAverage()
     if not ns.averageHolder then return end
-    local average = ns.db.avgIlvl and ns.AverageItemLevel()
+    local average, quality
+    if ns.db.avgIlvl then average, quality = ns.AverageItemLevel() end
     if not average then
         ns.averageHolder:Hide()
         return
     end
     averageValue:SetText(string.format("%.1f", average))
+    if ns.db.colorTier and quality then
+        averageValue:SetTextColor(ns.GetQualityColor(math.floor(quality + 0.5)))
+    else
+        averageValue:SetTextColor(1, 1, 1)
+    end
     ns.averageHolder:Show()
 end
 
