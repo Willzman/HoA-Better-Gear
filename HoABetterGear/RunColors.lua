@@ -6,7 +6,7 @@
 --   5-15%                                        green
 --   15-30%                                       blue
 --   30% or more                                  purple
---   at its cap (Dodge 60%, Speed 50%, ...)       orange - only when maxed
+--   at its cap (Dodge 60%, Speed 50%, Armor 300, ...) orange - only when maxed
 -- Outside a run everything stays white.
 --
 -- The starting point is what the panel last showed before the run (outside
@@ -19,7 +19,10 @@ local ns = HoABetterGear
 -- HoA's panel order (VanillaBonk.lua STAT_LAYOUT): stat ids per line.
 local PANEL_IDS = { 0, 1, 15, 16, 10, 18, 12, 14, 17, 4, 3, 8 }
 -- HoA's hard caps (STATS[id].cap), used if a tooltip doesn't name one.
-local CAPS = { [2] = 5, [3] = 50, [8] = 400, [14] = 60 }
+-- Armor (12) has no cap entry, but its damage reduction maxes out at 60%
+-- at 300 Armor (HoA: min(0.6, armor / (armor * 4/3 + 100))); past 300 it
+-- gives max health instead, so 300 counts as maxed.
+local CAPS = { [2] = 5, [3] = 50, [8] = 400, [12] = 300, [14] = 60 }
 
 local WHITE = { 1, 1, 1 }
 local BANDS = {                  -- same as the gear upgrade colors
