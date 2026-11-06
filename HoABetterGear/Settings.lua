@@ -162,6 +162,8 @@ local function ItemLevelSection(f, y)
     y = DbCheck(f, 1, y, "bags", "...on bag and bank items too")
     y = DbCheck(f, 1, y, "colorTier", "Color them by rarity",
         "Off: the gold of the tooltip's \"ilvl\" text.")
+    y = DbCheck(f, 1, y, "avgIlvl", "Average item level on the character pane",
+        "Shown just above Power. Empty slots that need gear count as 0; a two-hander counts twice.")
     local position = Button(f, 1, y - 2, 220, "", function()
         local i = 1
         for n, a in ipairs(ANCHOR_ORDER) do

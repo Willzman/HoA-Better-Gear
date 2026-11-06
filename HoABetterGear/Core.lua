@@ -25,6 +25,7 @@ ns.DEFAULTS = {
     minQuality = 2,             -- 0 poor, 1 common, 2 uncommon, 3 rare, 4 epic, 5 legendary
     anchor     = "BOTTOMRIGHT", -- where the item level sits on the icon
     colorTier  = true,          -- color the item level by rarity (else tooltip gold)
+    avgIlvl    = true,          -- average item level on the character pane
     glowAlpha  = 0.85,
     fontSize   = 13,
     -- comparison

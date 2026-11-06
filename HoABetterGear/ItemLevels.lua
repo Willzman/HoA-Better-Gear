@@ -374,10 +374,84 @@ end)
 -- Wiring
 -------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------
+-- Average item level, on the character pane just above the stats
+-------------------------------------------------------------------------------
+-- Like retail: every slot your class uses (no shirt, tabard, ammo or slots
+-- HoA locks), an empty slot that needs gear counts as 0, a two-hander counts
+-- twice (it fills both hands), and items without an item level are left out.
+
+local averageLabel, averageValue
+
+local function IsTwoHander(link)
+    local id = ns.ItemIdFromLink(link)
+    if not id then return false end
+    local _, _, _, _, _, _, _, equipLoc = GetItemInfo(id)
+    return equipLoc == "INVTYPE_2HWEAPON"
+end
+
+function ns.AverageItemLevel()
+    local total, count = 0, 0
+    local offHandLocked = false
+    for _, s in ipairs(slots) do
+        if s.name == "SecondaryHandSlot" then offHandLocked = SlotLocked(s) end
+    end
+    for _, s in ipairs(slots) do
+        if not NEVER_RED[s.name] and not SlotLocked(s) then
+            local link = GetInventoryItemLink("player", s.id)
+            if link then
+                local level = ns.GetItemLevel("inv", s.id, link)
+                if level then
+                    total, count = total + level, count + 1
+                    if s.name == "MainHandSlot" and not offHandLocked and IsTwoHander(link) then
+                        total, count = total + level, count + 1
+                    end
+                end
+            elseif EmptySlotNeedsGear(s) then
+                count = count + 1
+            end
+        end
+    end
+    if count == 0 then return nil end
+    return total / count
+end
+
+local function CreateAverage()
+    if not PaperDollFrame then return end
+    local holder = CreateFrame("Frame", nil, PaperDollFrame)
+    holder:SetWidth(104)
+    holder:SetHeight(11)
+    if VanillaBonkHeroStats then
+        -- the stat lines start 6px in; sit just above "Power:"
+        holder:SetPoint("BOTTOMLEFT", VanillaBonkHeroStats, "TOPLEFT", 6, 2)
+    else
+        holder:SetPoint("TOPLEFT", PaperDollFrame, "TOPLEFT", 73, -278)
+    end
+    holder:SetFrameLevel(PaperDollFrame:GetFrameLevel() + 10)
+    averageLabel = holder:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    averageLabel:SetPoint("LEFT", holder, "LEFT", 0, 0)
+    averageLabel:SetText("Item level:")
+    averageValue = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    averageValue:SetPoint("LEFT", averageLabel, "RIGHT", 4, 0)
+    ns.averageHolder = holder
+end
+
+local function UpdateAverage()
+    if not ns.averageHolder then return end
+    local average = ns.db.avgIlvl and ns.AverageItemLevel()
+    if not average then
+        ns.averageHolder:Hide()
+        return
+    end
+    averageValue:SetText(string.format("%.1f", average))
+    ns.averageHolder:Show()
+end
+
 ns.OnLoad(function()
     for _, name in ipairs(SLOT_NAMES) do
         SetupSlot(name)
     end
+    CreateAverage()
 end)
 
 ns.OnRefresh(function()
@@ -385,6 +459,7 @@ ns.OnRefresh(function()
     for _, s in ipairs(slots) do
         UpdateSlot(s)
     end
+    UpdateAverage()
     -- The game reuses its container windows for different bags, so clear
     -- anything left on buttons that weren't updated this time.
     local seen = {}
@@ -411,6 +486,7 @@ ns.Command("tier", function()
 end)
 ns.Toggle("bags", "bags", "item levels on bag and bank items")
 ns.Toggle("colorTier", "color", "rarity-colored item levels (off = gold)")
+ns.Toggle("avgIlvl", "avgilvl", "average item level on the character pane")
 
 ns.Command("quality", function(rest)
     local n = tonumber(rest)
