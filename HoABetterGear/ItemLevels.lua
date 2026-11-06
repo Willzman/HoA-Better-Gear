@@ -381,7 +381,9 @@ end)
 -- HoA locks), an empty slot that needs gear counts as 0, a two-hander counts
 -- twice (it fills both hands), and items without an item level are left out.
 -- The number is colored by the average rarity of the same slots (an empty
--- slot counts as poor), rounded to the nearest quality.
+-- slot counts as poor), rounded to the nearest quality but at most epic;
+-- it only turns legendary orange once every slot is epic or better and at
+-- least one is legendary.
 
 local averageLabel, averageValue
 
@@ -392,10 +394,11 @@ local function IsTwoHander(link)
     return equipLoc == "INVTYPE_2HWEAPON"
 end
 
--- Returns the average item level and the average quality (or nil).
+-- Returns the average item level and the quality to color it by (or nil).
 function ns.AverageItemLevel()
     local total, count = 0, 0
     local qualityTotal = 0
+    local lowest, anyLegendary = 99, false
     local offHandLocked = false
     for _, s in ipairs(slots) do
         if s.name == "SecondaryHandSlot" then offHandLocked = SlotLocked(s) end
@@ -414,14 +417,19 @@ function ns.AverageItemLevel()
                     end
                     total, count = total + level * times, count + times
                     qualityTotal = qualityTotal + quality * times
+                    if quality < lowest then lowest = quality end
+                    if quality >= 5 then anyLegendary = true end
                 end
             elseif EmptySlotNeedsGear(s) then
                 count = count + 1
+                lowest = 0
             end
         end
     end
     if count == 0 then return nil end
-    return total / count, qualityTotal / count
+    local quality = math.min(4, math.floor(qualityTotal / count + 0.5))
+    if lowest >= 4 and anyLegendary then quality = 5 end
+    return total / count, quality
 end
 
 local function CreateAverage()
@@ -454,7 +462,7 @@ local function UpdateAverage()
     end
     averageValue:SetText(string.format("%.1f", average))
     if ns.db.colorTier and quality then
-        averageValue:SetTextColor(ns.GetQualityColor(math.floor(quality + 0.5)))
+        averageValue:SetTextColor(ns.GetQualityColor(quality))
     else
         averageValue:SetTextColor(1, 1, 1)
     end
