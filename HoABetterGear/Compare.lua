@@ -514,7 +514,50 @@ HookTooltip("SetInventoryItem", function(unit, slot)
     end
 end)
 HookTooltip("SetLootItem", function(slot) return GetLootSlotLink(slot) end)
-HookTooltip("SetHyperlink", function(link) return link end)
+-- HoA's Extraction Vault rebuilds the item tooltip after showing the link
+-- (it copies the lines, clears it and writes them back with its own notes),
+-- which would leave the Better Gear section without its gold lines and in
+-- the middle. So for a vault card or "Mailed to you" slot (frames with a
+-- .find) the comparison waits until HoA shows the finished tooltip, and is
+-- added at the bottom then.
+local vaultPending -- the link to compare once HoA shows the vault tooltip
+
+local function HoveringVaultItem()
+    local vault = VanillaBonkVault
+    if not (vault and vault:IsShown() and GetMouseFocus) then return false end
+    local focus = GetMouseFocus()
+    return focus and type(focus.find) == "table" or false
+end
+
+do
+    local original = GameTooltip.SetHyperlink
+    if original then
+        GameTooltip.SetHyperlink = function(self, a1, a2, a3)
+            HideSeparator(self)
+            vaultPending = nil
+            local r1, r2, r3 = original(self, a1, a2, a3)
+            if HoveringVaultItem() then
+                vaultPending = a1
+            else
+                AddComparison(self, a1)
+            end
+            return r1, r2, r3
+        end
+    end
+    local show = GameTooltip.Show
+    GameTooltip.Show = function(self)
+        local link = vaultPending
+        if not link then return show(self) end
+        vaultPending = nil
+        show(self)
+        AddComparison(self, link) -- shows the tooltip again, now with the section
+    end
+    local onHide = GameTooltip:GetScript("OnHide")
+    GameTooltip:SetScript("OnHide", function(a1, a2)
+        vaultPending = nil
+        if onHide then onHide(a1, a2) end
+    end)
+end
 if GetBuybackItemLink then
     HookTooltip("SetBuybackItem", function(index) return GetBuybackItemLink(index) end)
 end

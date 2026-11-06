@@ -92,6 +92,7 @@ Settings are saved per account in `HoABetterGearDB`.
 - Everything refreshes when you open the character pane or bags, change gear, move items, or when the game sends gear data (`BONK~...` system messages).
 - The bank is the standard window: main slots `BankFrameItem1-24` (bag -1) and bank bags opened as `ContainerFrameN`; they're refreshed when the bank or a bank bag opens and when bank slots change.
 - The Extraction Vault's "Mailed to you" slots live in `VanillaBonkVault.box.slots`; while the vault is open the addon reads each slot's tier and quality and draws its item level.
+- In the Extraction Vault, HoA rebuilds each item tooltip after showing it (copying the lines, clearing them and adding its own notes), so for vault cards and "Mailed to you" slots the Better Gear section is added once HoA shows the finished tooltip, at the bottom. No upgrade arrows are added there (any arrow on a vault card is HoA's own).
 - The loot window's New card is HoA's own tooltip (`VanillaBonkGearNewTip`); the comparison is added right after HoA fills it in, so the card grows to fit.
 - Quartermaster cards aren't named frames, so while that window is open the addon finds them inside `VanillaBonkQuartermasterFrame` and updates a card's arrow when its item changes.
 - The shield amount comes from the `BONK~shield~<amount>` message the HoA server sends whenever your shield changes (the same one HoA draws its shield bar from).
