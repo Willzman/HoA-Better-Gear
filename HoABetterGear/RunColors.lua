@@ -82,7 +82,8 @@ end
 -------------------------------------------------------------------------------
 -- Key stats colored by their own value (in and out of runs)
 -------------------------------------------------------------------------------
--- Crit chance / damage: purple above 100%, orange from 200%.
+-- Crit chance / damage: green from 33%, blue from 66%, purple above 100%,
+-- orange from 200%.
 -- Armor, Dodge, Speed: by how close they are to their cap - green from a
 -- quarter of the way, blue from half, purple from three quarters, orange at
 -- the cap (Armor 300, Dodge 60%, Speed 50%).
@@ -94,6 +95,8 @@ local function ValueColor(line, key, now)
     if CRIT[key] then
         if now >= 200 then return CAPPED end
         if now > 100 then return PURPLE end
+        if now >= 66 then return BLUE end
+        if now >= 33 then return GREEN end
         return WHITE
     end
     local id = TO_CAP[key]
