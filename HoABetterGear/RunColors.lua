@@ -86,8 +86,8 @@ end
 -- orange from 200%. Shield the same. Pickup range the same, but orange at
 -- its 400% cap.
 -- Armor, Dodge, Speed: by how close they are to their cap - green from a
--- quarter of the way, blue from half, purple from three quarters, orange at
--- the cap (Armor 300, Dodge 60%, Speed 50%).
+-- quarter of the way (Speed: above 0), blue from half, purple from three
+-- quarters, orange at the cap (Armor 300, Dodge 60%, Speed 50%).
 local GREEN, BLUE, PURPLE = BANDS[1].color, BANDS[2].color, BANDS[3].color
 -- Crit-style steps; the value is the top (orange) mark: 200%, or for
 -- Pickup range its cap (400%, or whatever HoA's tooltip says).
@@ -153,6 +153,8 @@ local function ValueColor(line, key, now)
     if share >= 0.75 then return PURPLE end
     if share >= 0.5 then return BLUE end
     if share >= 0.25 then return GREEN end
+    -- Speed: any speed at all counts (a fresh character has 0% outside runs)
+    if id == 3 and now > 0 then return GREEN end
     return WHITE
 end
 
