@@ -93,6 +93,13 @@ local GREEN, BLUE, PURPLE = BANDS[1].color, BANDS[2].color, BANDS[3].color
 local CRIT = { [15] = 200, [16] = 200, ["Crit chance:"] = 200, ["Crit damage:"] = 200,
     [8] = "cap", ["Pickup range:"] = "cap" }
 local TO_CAP = { [12] = 12, [14] = 14, [3] = 3, ["Armor:"] = 12, ["Dodge:"] = 14, ["Speed:"] = 3 }
+-- Haste and Area have diminishing returns rather than a cap (HoA's STATS
+-- curve): shown = limit * (1 - e^(-raw / limit)), so they approach 75% and
+-- 60% but never reach them, and each extra point only counts for the share
+-- still missing. Same steps as above, but orange from 90% of the limit,
+-- where an extra point adds only a tenth of its value.
+local CURVES = { [1] = 75, [10] = 60, ["Haste:"] = 75, ["Area:"] = 60 }
+local CURVE_ORANGE = 0.9
 
 local function ValueColor(line, key, now)
     if CRIT[key] then
@@ -102,6 +109,14 @@ local function ValueColor(line, key, now)
         if now > 100 then return PURPLE end
         if now >= 66 then return BLUE end
         if now >= 33 then return GREEN end
+        return WHITE
+    end
+    if CURVES[key] then
+        local share = now / CURVES[key]
+        if share >= CURVE_ORANGE then return CAPPED end
+        if share >= 0.75 then return PURPLE end
+        if share >= 0.5 then return BLUE end
+        if share >= 0.25 then return GREEN end
         return WHITE
     end
     local id = TO_CAP[key]
@@ -122,7 +137,7 @@ end
 function ns.StatColor(line, index, count)
     if not ns.db then return WHITE[1], WHITE[2], WHITE[3] end
     local key = LineKey(line, index, count)
-    if ns.db.capColors and (CRIT[key] or TO_CAP[key]) then
+    if ns.db.capColors and (CRIT[key] or TO_CAP[key] or CURVES[key]) then
         local now = Number(line.value:GetText())
         if not now then return WHITE[1], WHITE[2], WHITE[3] end
         local color = ValueColor(line, key, now)
