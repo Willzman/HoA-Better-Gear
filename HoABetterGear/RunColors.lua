@@ -83,17 +83,22 @@ end
 -- Key stats colored by their own value (in and out of runs)
 -------------------------------------------------------------------------------
 -- Crit chance / damage: green from 33%, blue from 66%, purple above 100%,
--- orange from 200%.
+-- orange from 200%. Pickup range the same, but orange at its 400% cap.
 -- Armor, Dodge, Speed: by how close they are to their cap - green from a
 -- quarter of the way, blue from half, purple from three quarters, orange at
 -- the cap (Armor 300, Dodge 60%, Speed 50%).
 local GREEN, BLUE, PURPLE = BANDS[1].color, BANDS[2].color, BANDS[3].color
-local CRIT = { [15] = true, [16] = true, ["Crit chance:"] = true, ["Crit damage:"] = true }
+-- Crit-style steps; the value is the top (orange) mark: 200%, or for
+-- Pickup range its cap (400%, or whatever HoA's tooltip says).
+local CRIT = { [15] = 200, [16] = 200, ["Crit chance:"] = 200, ["Crit damage:"] = 200,
+    [8] = "cap", ["Pickup range:"] = "cap" }
 local TO_CAP = { [12] = 12, [14] = 14, [3] = 3, ["Armor:"] = 12, ["Dodge:"] = 14, ["Speed:"] = 3 }
 
 local function ValueColor(line, key, now)
     if CRIT[key] then
-        if now >= 200 then return CAPPED end
+        local top = CRIT[key]
+        if top == "cap" then top = CapOf(line, key) or CAPS[8] end
+        if now >= top then return CAPPED end
         if now > 100 then return PURPLE end
         if now >= 66 then return BLUE end
         if now >= 33 then return GREEN end
