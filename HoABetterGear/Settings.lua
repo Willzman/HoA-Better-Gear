@@ -245,7 +245,7 @@ local function StatsSection(f, y)
         Apply()
     end)
     Tooltip(colors, "Stat colors (click to change)",
-        "By value: every stat by its own value, in and out of runs - e.g. Crit purple above 100%, orange at 200%; Armor, Dodge, Speed towards their caps; Power orange above 1500%; Luck orange above 60.\n\n"
+        "By value: every stat by its own value, in and out of runs - e.g. Crit purple above 100%, orange at 200%; Armor, Dodge, Speed towards their caps; Power orange above 2000%; Luck orange above 60.\n\n"
         .. "By run growth: during a run, by how much each stat has grown since it started (green +5%, blue +15%, purple +30%, orange when capped); white outside runs.\n\nOff: all white.")
     table.insert(controls, { sync = function()
         local names = { value = "By value", run = "By run growth", off = "Off" }
