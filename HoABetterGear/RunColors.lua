@@ -83,7 +83,8 @@ end
 -- Key stats colored by their own value (in and out of runs)
 -------------------------------------------------------------------------------
 -- Crit chance / damage: green from 33%, blue from 66%, purple above 100%,
--- orange from 200%. Pickup range the same, but orange at its 400% cap.
+-- orange from 200%. Shield the same. Pickup range the same, but orange at
+-- its 400% cap.
 -- Armor, Dodge, Speed: by how close they are to their cap - green from a
 -- quarter of the way, blue from half, purple from three quarters, orange at
 -- the cap (Armor 300, Dodge 60%, Speed 50%).
@@ -91,6 +92,7 @@ local GREEN, BLUE, PURPLE = BANDS[1].color, BANDS[2].color, BANDS[3].color
 -- Crit-style steps; the value is the top (orange) mark: 200%, or for
 -- Pickup range its cap (400%, or whatever HoA's tooltip says).
 local CRIT = { [15] = 200, [16] = 200, ["Crit chance:"] = 200, ["Crit damage:"] = 200,
+    [17] = 200, ["Shield:"] = 200, -- Shield is % of max health: 100% = a full health bar
     [8] = "cap", ["Pickup range:"] = "cap" }
 local TO_CAP = { [12] = 12, [14] = 14, [3] = 3, ["Armor:"] = 12, ["Dodge:"] = 14, ["Speed:"] = 3 }
 -- Haste and Area have diminishing returns rather than a cap (HoA's STATS
