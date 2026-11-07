@@ -157,18 +157,24 @@ local function ValueColor(line, key, now)
 end
 
 -- r, g, b for one panel line (also used by the stats window).
--- Crit chance, Crit damage, Armor, Dodge and Speed always go by their own
--- value (in and out of runs); the other stats by run growth, white outside.
+-- ns.db.statColors: "value" - every stat by its own value (in and out of
+-- runs); "run" - by growth since the run started, white outside runs;
+-- "off" - white.
 function ns.StatColor(line, index, count)
     if not ns.db then return WHITE[1], WHITE[2], WHITE[3] end
+    local mode = ns.db.statColors or "value"
+    if mode == "off" then return WHITE[1], WHITE[2], WHITE[3] end
     local key = LineKey(line, index, count)
-    if ns.db.capColors and (CRIT[key] or TO_CAP[key] or CURVES[key] or TOPS[key]) then
+    if mode == "value" then
+        if not (CRIT[key] or TO_CAP[key] or CURVES[key] or TOPS[key]) then
+            return WHITE[1], WHITE[2], WHITE[3]
+        end
         local now = Number(line.value:GetText())
         if not now then return WHITE[1], WHITE[2], WHITE[3] end
         local color = ValueColor(line, key, now)
         return color[1], color[2], color[3]
     end
-    if not (inRun and ns.db.runColors) then return WHITE[1], WHITE[2], WHITE[3] end
+    if not inRun then return WHITE[1], WHITE[2], WHITE[3] end
     local now = Number(line.value:GetText())
     if not now then return WHITE[1], WHITE[2], WHITE[3] end
     local cap = CapOf(line, key)
@@ -243,4 +249,16 @@ ns.On("CHAT_MSG_SYSTEM", function(msg)
         local _, _, flag = string.find(msg, "^BONK~stats~(%d)")
         if flag then SetInRun(flag == "1") end
     end
+end)
+
+ns.Command("statcolors", function(rest)
+    local names = { value = "by value", run = "by run growth", off = "off" }
+    if not names[rest] then
+        ns.Print("usage: /hbg statcolors value|run|off (now " .. (names[ns.db.statColors] or "by value") .. ")")
+        return true
+    end
+    ns.db.statColors = rest
+    ns.Print("stat colors " .. names[rest])
+end, function()
+    return "/hbg statcolors value|run|off - how hero stats are colored (now " .. (ns.db.statColors or "value") .. ")"
 end)

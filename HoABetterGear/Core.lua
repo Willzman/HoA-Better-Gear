@@ -19,8 +19,7 @@ ns.DEFAULTS = {
     shieldPct  = false,         -- ...plus the shield as % of max health
     statsButton = true,         -- pop-out button for the stats window on the character pane
     statsAlpha = 0.65,          -- stats window background opacity
-    runColors  = true,          -- color hero stats by how much they've grown this run
-    capColors  = true,          -- color crit, armor, dodge, speed by value (always)
+    statColors = "value",       -- hero stat colors: "value" (always), "run" (growth this run) or "off"
     tier       = true,          -- item level numbers
     bags       = true,          -- item levels on bag and bank items
     minQuality = 2,             -- 0 poor, 1 common, 2 uncommon, 3 rare, 4 epic, 5 legendary
@@ -231,6 +230,16 @@ frame:SetScript("OnEvent", function(self, ev, a1)
             db.prefix = nil
             db.settingsVersion = 2
         end
+        -- v4.9: one stat color choice instead of two checkboxes
+        if db.settingsVersion < 3 then
+            if db.capColors == false then
+                db.statColors = db.runColors == false and "off" or "run"
+            else
+                db.statColors = "value"
+            end
+            db.capColors, db.runColors = nil, nil
+            db.settingsVersion = 3
+        end
         ns.db = db
         for _, fn in ipairs(loaders) do fn() end
         return
@@ -354,7 +363,7 @@ ns.Command("reset", function()
     for k, v in pairs(ns.DEFAULTS) do ns.db[k] = v end
     ns.db.weights = weights
     ns.db.runBaseline, ns.db.runInRun = baseline, inRun -- keep the current run's start
-    ns.db.settingsVersion = 2
+    ns.db.settingsVersion = 3
     if ns.Restyle then ns.Restyle() end
     ns.Print("settings reset (stat weights kept - use /hbg weight reset)")
 end, function() return "/hbg reset - restore default settings" end)

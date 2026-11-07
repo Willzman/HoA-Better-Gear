@@ -238,10 +238,20 @@ local function StatsSection(f, y)
         function() return ns.StatsWindowShown and ns.StatsWindowShown() end,
         function(v) if ns.SetStatsWindowShown then ns.SetStatsWindowShown(v) end end)
     y = DbCheck(f, 2, y, "statsButton", "Pop-out button on the character pane")
-    y = DbCheck(f, 2, y, "capColors", "Color key stats by value",
-        "Crit chance and damage, and Shield: green from 33%, blue from 66%, purple above 100%, orange from 200%. Pickup range the same, orange at its 400% cap. Armor, Dodge and Speed: green, blue, purple as they near their cap (300, 60%, 50%), orange at it. Haste and Area: the same towards their diminishing-returns limit (75%, 60%), orange from 90% of it. Max health: green 100%, blue 250%, purple 375%, orange 500%. Power: green above 100%, blue above 500%, purple above 1000%, orange above 1500%. Luck: green above 0, blue above 20, purple above 40, orange above 60. In and out of runs.")
-    y = DbCheck(f, 2, y, "runColors", "Color stats by run upgrades",
-        "During a run, stats turn green, blue then purple as they grow past where they started (5%, 15%, 30%), and orange once capped.")
+    local colors = Button(f, 2, y - 2, 236, "", function()
+        local nextMode = { value = "run", run = "off", off = "value" }
+        ns.db.statColors = nextMode[ns.db.statColors] or "value"
+        SyncAll()
+        Apply()
+    end)
+    Tooltip(colors, "Stat colors (click to change)",
+        "By value: every stat by its own value, in and out of runs - e.g. Crit purple above 100%, orange at 200%; Armor, Dodge, Speed towards their caps; Power orange above 1500%; Luck orange above 60.\n\n"
+        .. "By run growth: during a run, by how much each stat has grown since it started (green +5%, blue +15%, purple +30%, orange when capped); white outside runs.\n\nOff: all white.")
+    table.insert(controls, { sync = function()
+        local names = { value = "By value", run = "By run growth", off = "Off" }
+        colors:SetText("Stat colors: " .. (names[ns.db.statColors] or "By value"))
+    end })
+    y = y - 30
     y = Slider(f, 2, y, "Background opacity", 0, 100, 5,
         function() return math.floor(ns.db.statsAlpha * 100 + 0.5) end,
         function(v) ns.db.statsAlpha = v / 100 end,
@@ -381,7 +391,7 @@ local function CreateSettings()
         for k, v in pairs(ns.DEFAULTS) do ns.db[k] = v end
         ns.db.weights = weights
         ns.db.runBaseline, ns.db.runInRun = baseline, inRun -- keep the current run's start
-        ns.db.settingsVersion = 2
+        ns.db.settingsVersion = 3
         if ns.ResetStatsPosition then ns.ResetStatsPosition() end
         SyncAll()
         Apply()
