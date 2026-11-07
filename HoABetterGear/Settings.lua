@@ -239,7 +239,7 @@ local function StatsSection(f, y)
         function(v) if ns.SetStatsWindowShown then ns.SetStatsWindowShown(v) end end)
     y = DbCheck(f, 2, y, "statsButton", "Pop-out button on the character pane")
     y = DbCheck(f, 2, y, "capColors", "Color key stats by value",
-        "Crit chance and damage, and Shield: green from 33%, blue from 66%, purple above 100%, orange from 200%. Pickup range the same, orange at its 400% cap. Armor, Dodge and Speed: green, blue, purple as they near their cap (300, 60%, 50%), orange at it. Haste and Area: the same towards their diminishing-returns limit (75%, 60%), orange from 90% of it. In and out of runs; the other stats color by run growth.")
+        "Crit chance and damage, and Shield: green from 33%, blue from 66%, purple above 100%, orange from 200%. Pickup range the same, orange at its 400% cap. Armor, Dodge and Speed: green, blue, purple as they near their cap (300, 60%, 50%), orange at it. Haste and Area: the same towards their diminishing-returns limit (75%, 60%), orange from 90% of it. Max health: green 125%, blue 250%, purple 375%, orange 500%. In and out of runs; the other stats color by run growth.")
     y = DbCheck(f, 2, y, "runColors", "Color stats by run upgrades",
         "During a run, stats turn green, blue then purple as they grow past where they started (5%, 15%, 30%), and orange once capped.")
     y = Slider(f, 2, y, "Background opacity", 0, 100, 5,

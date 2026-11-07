@@ -101,6 +101,9 @@ local TO_CAP = { [12] = 12, [14] = 14, [3] = 3, ["Armor:"] = 12, ["Dodge:"] = 14
 -- still missing. Same steps as above, but orange from 90% of the limit,
 -- where an extra point adds only a tenth of its value.
 local CURVES = { [1] = 75, [10] = 60, ["Haste:"] = 75, ["Area:"] = 60 }
+-- Stats with no cap, stepped in quarters towards a chosen top (orange):
+-- Max health 500%.
+local TOPS = { [4] = 500, ["Max health:"] = 500 }
 local CURVE_ORANGE = 0.9
 
 local function ValueColor(line, key, now)
@@ -111,6 +114,14 @@ local function ValueColor(line, key, now)
         if now > 100 then return PURPLE end
         if now >= 66 then return BLUE end
         if now >= 33 then return GREEN end
+        return WHITE
+    end
+    if TOPS[key] then
+        local share = now / TOPS[key]
+        if share >= 1 then return CAPPED end
+        if share >= 0.75 then return PURPLE end
+        if share >= 0.5 then return BLUE end
+        if share >= 0.25 then return GREEN end
         return WHITE
     end
     if CURVES[key] then
@@ -139,7 +150,7 @@ end
 function ns.StatColor(line, index, count)
     if not ns.db then return WHITE[1], WHITE[2], WHITE[3] end
     local key = LineKey(line, index, count)
-    if ns.db.capColors and (CRIT[key] or TO_CAP[key] or CURVES[key]) then
+    if ns.db.capColors and (CRIT[key] or TO_CAP[key] or CURVES[key] or TOPS[key]) then
         local now = Number(line.value:GetText())
         if not now then return WHITE[1], WHITE[2], WHITE[3] end
         local color = ValueColor(line, key, now)
