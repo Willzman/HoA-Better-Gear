@@ -103,10 +103,10 @@ local TO_CAP = { [12] = 12, [14] = 14, [3] = 3, ["Armor:"] = 12, ["Dodge:"] = 14
 local CURVES = { [1] = 75, [10] = 60, ["Haste:"] = 75, ["Area:"] = 60 }
 -- Stats with no cap, stepped towards a chosen top (orange):
 --   Max health  green 100%, blue 250%, purple 375%, orange 500%
---   Power       green 333%, blue 666%, purple above 1000%, orange 2000%
+--   Power       green above 100%, blue 666%, purple above 1000%, orange 2000%
 local TOPS = {
     [4] = { green = 100, blue = 250, purple = 375, orange = 500 },
-    [0] = { green = 333, blue = 666, purple = 1000, purpleAbove = true, orange = 2000 },
+    [0] = { green = 100, greenAbove = true, blue = 666, purple = 1000, purpleAbove = true, orange = 2000 },
 }
 TOPS["Max health:"] = TOPS[4]
 TOPS["Power:"] = TOPS[0]
@@ -127,7 +127,7 @@ local function ValueColor(line, key, now)
         if now >= steps.orange then return CAPPED end
         if now > steps.purple or (now == steps.purple and not steps.purpleAbove) then return PURPLE end
         if now >= steps.blue then return BLUE end
-        if now >= steps.green then return GREEN end
+        if now > steps.green or (now == steps.green and not steps.greenAbove) then return GREEN end
         return WHITE
     end
     if CURVES[key] then
