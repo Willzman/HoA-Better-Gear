@@ -7,7 +7,8 @@
 --   15-30%                                       blue
 --   30% or more                                  purple
 --   at its cap (Dodge 60%, Speed 50%, Armor 300, ...) orange - only when maxed
--- Outside a run everything stays white.
+-- Outside a run, only Crit chance, Crit damage, Armor, Dodge and Speed are
+-- colored, by their own value (see ValueColor below).
 --
 -- The starting point is what the panel last showed before the run (outside
 -- a run), else the first values seen in the run. Runs start and end with
@@ -77,9 +78,46 @@ local function Copy(t)
     return c
 end
 
+-------------------------------------------------------------------------------
+-- Outside a run: a few stats colored by their own value
+-------------------------------------------------------------------------------
+-- Crit chance / damage: purple above 100%, orange from 200%.
+-- Armor, Dodge, Speed: by how close they are to their cap - green from a
+-- quarter of the way, blue from half, purple from three quarters, orange at
+-- the cap (Armor 300, Dodge 60%, Speed 50%).
+local GREEN, BLUE, PURPLE = BANDS[1].color, BANDS[2].color, BANDS[3].color
+local CRIT = { [15] = true, [16] = true, ["Crit chance:"] = true, ["Crit damage:"] = true }
+local TO_CAP = { [12] = 12, [14] = 14, [3] = 3, ["Armor:"] = 12, ["Dodge:"] = 14, ["Speed:"] = 3 }
+
+local function ValueColor(line, key, now)
+    if CRIT[key] then
+        if now >= 200 then return CAPPED end
+        if now > 100 then return PURPLE end
+        return WHITE
+    end
+    local id = TO_CAP[key]
+    if not id then return WHITE end
+    local cap = CapOf(line, key) or CAPS[id]
+    if not cap or cap <= 0 then return WHITE end
+    local share = now / cap
+    if share >= 1 then return CAPPED end
+    if share >= 0.75 then return PURPLE end
+    if share >= 0.5 then return BLUE end
+    if share >= 0.25 then return GREEN end
+    return WHITE
+end
+
 -- r, g, b for one panel line (also used by the stats window).
 function ns.StatColor(line, index, count)
-    if not (ns.db and ns.db.runColors and inRun) then return WHITE[1], WHITE[2], WHITE[3] end
+    if not ns.db then return WHITE[1], WHITE[2], WHITE[3] end
+    if not inRun then
+        if not ns.db.capColors then return WHITE[1], WHITE[2], WHITE[3] end
+        local now = Number(line.value:GetText())
+        if not now then return WHITE[1], WHITE[2], WHITE[3] end
+        local color = ValueColor(line, LineKey(line, index, count), now)
+        return color[1], color[2], color[3]
+    end
+    if not ns.db.runColors then return WHITE[1], WHITE[2], WHITE[3] end
     local key = LineKey(line, index, count)
     local now = Number(line.value:GetText())
     if not now then return WHITE[1], WHITE[2], WHITE[3] end
