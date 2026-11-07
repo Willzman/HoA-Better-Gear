@@ -103,13 +103,13 @@ local TO_CAP = { [12] = 12, [14] = 14, [3] = 3, ["Armor:"] = 12, ["Dodge:"] = 14
 local CURVES = { [1] = 75, [10] = 60, ["Haste:"] = 75, ["Area:"] = 60 }
 -- Stats with no cap, stepped towards a chosen top (orange):
 --   Max health  green 100%, blue 250%, purple 375%, orange 500%
---   Power       green above 100%, blue above 500%, purple above 1000%, orange above 2000%
+--   Power       green above 100%, blue above 500%, purple above 1000%, orange from 2000%
 --   Luck        green above 0, blue above 20, purple above 40, orange above 60
 --               (repeat Luck picks shrink by 15% each, so ~60 is where runs
 --               usually level off)
 local TOPS = {
     [4] = { green = 100, blue = 250, purple = 375, orange = 500 },
-    [0] = { green = 100, greenAbove = true, blue = 500, blueAbove = true, purple = 1000, purpleAbove = true, orange = 2000, orangeAbove = true },
+    [0] = { green = 100, greenAbove = true, blue = 500, blueAbove = true, purple = 1000, purpleAbove = true, orange = 2000 },
 }
 TOPS[18] = { green = 0, greenAbove = true, blue = 20, blueAbove = true,
     purple = 40, purpleAbove = true, orange = 60, orangeAbove = true }
